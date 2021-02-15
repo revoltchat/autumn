@@ -9,25 +9,32 @@ extern crate tree_magic;
 
 use log::info;
 use imagesize;
+use nanoid::nanoid;
 use ffprobe::ffprobe;
+use std::convert::TryFrom;
 use tempfile::NamedTempFile;
 use std::{fs::File, io::Write};
 use actix_multipart::Multipart;
 use futures::{StreamExt, TryStreamExt};
 use actix_web::{App, HttpResponse, HttpServer, middleware, web};
 
+enum Metadata {
+    File,
+    Image { width: usize, height: usize },
+    Video { width: usize, height: usize },
+    Audio
+}
+
+struct Attachment {
+    id: String,
+    filename: String,
+    metadata: Metadata
+}
+
 async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
     if let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_disposition().unwrap();
         let filename = content_type.get_filename().unwrap();
-
-        /* let stream = stream::iter(vec![Ok(vec![1, 2, 3, 4, 5])]);
-let mut reader = stream.into_async_read();
-let mut buf = Vec::new();
-
-assert!(reader.read_to_end(&mut buf).await.is_ok()); */
-        // let mut reader = field.into_async_read();
-        // let mut buf = Vec::new();
 
         // ? Read multipart data into a buffer.        
         let mut file_size: usize = 0;
@@ -48,12 +55,12 @@ assert!(reader.read_to_end(&mut buf).await.is_ok()); */
         dbg!(&content_type);
         let s = &content_type[..];
 
-        match s {
+        let metadata = match s {
             /* jpg */ "image/jpeg" |
             /* png */ "image/png" |
             /* gif */ "image/gif"  => {
-                if let Ok(size) = imagesize::blob_size(&buf) {
-                    dbg!(size);
+                if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
+                    Metadata::Image { width, height }
                 } else {
                     return Err(Error::LabelMe)
                 }
@@ -68,15 +75,19 @@ assert!(reader.read_to_end(&mut buf).await.is_ok()); */
                 
                 let data = ffprobe(path).unwrap();
                 let stream = data.streams.into_iter().next().unwrap();
-                dbg!(stream.width, stream.height);
+                
+                Metadata::Video {
+                    width: TryFrom::try_from(stream.width.unwrap()).unwrap(),
+                    height: TryFrom::try_from(stream.height.unwrap()).unwrap()
+                }
             }
             /* mp3 */ "audio/mpeg" => {
-
+                Metadata::Audio
             }
             _ => {
-                
+                Metadata::File
             }
-        }
+        };
 
         /*let fpath = format!("./tmp/{}", sanitize_filename::sanitize(&filename));
 
