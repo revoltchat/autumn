@@ -13,7 +13,12 @@ pub async fn static_serve(req: HttpRequest) -> Result<NamedFile, Error> {
 
     let content_type = get_collection("attachments")
         .find_one(
-            doc! { "_id": id },
+            doc! {
+                "_id": id,
+                "message_id": {
+                    "$exists": true
+                }
+            },
             FindOneOptions::builder()
                 .projection(doc! { "_id": 0, "content_type": 1 })
                 .build(),
