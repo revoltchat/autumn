@@ -27,11 +27,13 @@ pub async fn static_download(req: HttpRequest) -> Result<NamedFile, Error> {
         .map_err(|_| Error::DatabaseError)?
         .ok_or_else(|| Error::NotFound)?;
 
-    let filename = doc.get_str("filename")
+    let filename = doc
+        .get_str("filename")
         .map_err(|_| Error::DatabaseError)?
         .to_string();
 
-    let content_type = doc.get_str("content_type")
+    let content_type = doc
+        .get_str("content_type")
         .map_err(|_| Error::DatabaseError)?
         .parse::<mime::Mime>()
         .map_err(|_| Error::LabelMe)?;
@@ -44,9 +46,7 @@ pub async fn static_download(req: HttpRequest) -> Result<NamedFile, Error> {
         .map_err(|_| Error::IOError)?
         .set_content_disposition(ContentDisposition {
             disposition: DispositionType::Attachment,
-            parameters: vec![
-                DispositionParam::Filename(filename)
-            ],
+            parameters: vec![DispositionParam::Filename(filename)],
         })
         .set_content_type(content_type))
 }

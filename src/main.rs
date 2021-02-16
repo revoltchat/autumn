@@ -8,6 +8,7 @@ use util::variables::HOST;
 extern crate lazy_static;
 extern crate tree_magic;
 
+use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
 use log::info;
 use web::PayloadConfig;
@@ -25,10 +26,11 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
+            .wrap(Cors::default().supports_credentials())
             .app_data(PayloadConfig::new(10_000_000))
             .service(
                 web::resource("/")
-                    .route(web::get().to(routes::test_form::test_form))
+                    // .route(web::get().to(routes::test_form::test_form))
                     .route(web::post().to(routes::upload::upload)),
             )
             .route(
