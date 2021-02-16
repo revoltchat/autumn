@@ -28,8 +28,12 @@ async fn main() -> std::io::Result<()> {
             .app_data(PayloadConfig::new(10_000_000))
             .service(
                 web::resource("/")
-                    // .route(web::get().to(index))
+                    .route(web::get().to(routes::test_form::test_form))
                     .route(web::post().to(routes::upload::upload)),
+            )
+            .route(
+                "/download/{filename:.*}",
+                web::get().to(routes::static_download::static_download),
             )
             .route(
                 "/{filename:[^/]*}",
