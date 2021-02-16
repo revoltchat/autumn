@@ -14,7 +14,11 @@ use std::convert::TryFrom;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
-pub async fn upload(mut payload: Multipart) -> Result<HttpResponse, Error> {
+pub async fn option() -> HttpResponse {
+    HttpResponse::Ok().into()
+}
+
+pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
     if let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field
             .content_disposition()

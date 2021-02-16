@@ -8,7 +8,7 @@ use mongodb::bson::doc;
 use mongodb::options::FindOneOptions;
 use std::path::PathBuf;
 
-pub async fn static_download(req: HttpRequest) -> Result<NamedFile, Error> {
+pub async fn get(req: HttpRequest) -> Result<NamedFile, Error> {
     let id = req.match_info().query("filename");
 
     let doc = get_collection("attachments")

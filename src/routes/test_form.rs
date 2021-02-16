@@ -1,6 +1,6 @@
 use actix_web::HttpResponse;
 
-pub fn test_form() -> HttpResponse {
+pub fn get() -> HttpResponse {
     let html = r#"<html>
         <head><title>Upload Test</title></head>
         <body>

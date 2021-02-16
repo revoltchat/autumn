@@ -25,25 +25,30 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
+            .wrap(
+                Cors::default()
+                    .allowed_origin_fn(|_, _| true)
+                    .allowed_methods(vec!["POST"])
+                    .supports_credentials(),
+            )
             .wrap(middleware::Logger::default())
-            .wrap(Cors::default().supports_credentials())
             .app_data(PayloadConfig::new(10_000_000))
             .service(
                 web::resource("/")
                     // .route(web::get().to(routes::test_form::test_form))
-                    .route(web::post().to(routes::upload::upload)),
+                    .route(web::post().to(routes::upload::post)),
             )
             .route(
                 "/download/{filename:.*}",
-                web::get().to(routes::static_download::static_download),
+                web::get().to(routes::static_download::get),
             )
             .route(
                 "/{filename:[^/]*}",
-                web::get().to(routes::static_serve::static_serve),
+                web::get().to(routes::static_serve::get),
             )
             .route(
                 "/{filename:[^/]*}/{fn:.*}",
-                web::get().to(routes::static_serve::static_serve),
+                web::get().to(routes::static_serve::get),
             )
     })
     .bind(HOST.clone())?
