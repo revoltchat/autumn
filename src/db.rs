@@ -32,5 +32,6 @@ pub struct File {
     #[serde(rename = "_id")]
     pub id: String,
     pub filename: String,
-    pub metadata: Metadata
+    pub metadata: Metadata,
+    pub content_type: String
 }

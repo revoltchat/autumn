@@ -2,8 +2,6 @@ pub mod util;
 pub mod db;
 
 use db::*;
-use mongodb::bson::to_document;
-use serde_json::json;
 use util::result::Error;
 use util::variables::{FILE_SIZE_LIMIT, HOST};
 
@@ -13,15 +11,18 @@ extern crate tree_magic;
 
 use log::info;
 use imagesize;
-use web::PayloadConfig;
-use std::io::Write;
 use nanoid::nanoid;
 use ffprobe::ffprobe;
+use serde_json::json;
+use web::PayloadConfig;
 use std::convert::TryFrom;
+use actix_files::NamedFile;
 use tempfile::NamedTempFile;
+use mongodb::{bson::{doc, to_document}, options::FindOneOptions};
 use actix_multipart::Multipart;
+use std::{io::Write, path::PathBuf};
 use futures::{StreamExt, TryStreamExt};
-use actix_web::{App, HttpResponse, HttpServer, middleware, web};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, http::header::{ContentDisposition, DispositionType}, middleware, web};
 
 async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
     if let Ok(Some(mut field)) = payload.try_next().await {
@@ -83,11 +84,12 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
             }
         };
 
-        let id = nanoid!(64);
+        let id = nanoid!(42);
         let file = db::File {
             id,
             filename,
-            metadata
+            metadata,
+            content_type
         };
 
         get_collection("attachments")
@@ -130,6 +132,39 @@ fn index() -> HttpResponse {
     HttpResponse::Ok().body(html)
 }
 
+async fn static_serve(req: HttpRequest) -> Result<NamedFile, Error> {
+    let id = req.match_info().query("filename");
+
+    let content_type = get_collection("attachments")
+        .find_one(
+            doc! { "_id": id },
+            FindOneOptions::builder()
+                .projection(doc! { "_id": 0, "content_type": 1 })
+                .build()
+        )
+        .await
+        .map_err(|_| Error::DatabaseError)?
+        .ok_or_else(|| Error::NotFound)?
+        .get_str("content_type")
+        .map_err(|_| Error::DatabaseError)?
+        .parse::<mime::Mime>()
+        .map_err(|_| Error::LabelMe)?;
+
+    let path: PathBuf = 
+        format!("./files/{}", id)
+        .parse().map_err(|_| Error::IOError)?;
+    
+    Ok(
+        NamedFile::open(path)
+            .map_err(|_| Error::IOError)?
+            .set_content_disposition(ContentDisposition {
+                disposition: DispositionType::Inline,
+                parameters: vec![],
+            })
+            .set_content_type(content_type)
+    )
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -150,6 +185,8 @@ async fn main() -> std::io::Result<()> {
                 .route(web::post()
                 .to(save_file)),
         )
+        .route("/{filename:[^/]*}", web::get().to(static_serve))
+        .route("/{filename:[^/]*}/{fn:.*}", web::get().to(static_serve))
     })
     .bind(HOST.clone())?
     .run()

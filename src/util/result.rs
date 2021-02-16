@@ -14,6 +14,7 @@ pub enum Error {
     DatabaseError,
     MissingData,
     ProbeError,
+    NotFound,
     IOError,
     LabelMe,
 }
@@ -32,6 +33,7 @@ impl ResponseError for Error {
             Error::DatabaseError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::MissingData => StatusCode::BAD_REQUEST,
             Error::ProbeError => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::NotFound => StatusCode::NOT_FOUND,
             Error::IOError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::LabelMe => StatusCode::INTERNAL_SERVER_ERROR
         }
