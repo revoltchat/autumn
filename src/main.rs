@@ -1,7 +1,8 @@
 pub mod util;
+pub mod db;
 
 use util::result::Error;
-use util::variables::FILE_SIZE_LIMIT;
+use util::variables::{FILE_SIZE_LIMIT, HOST};
 
 #[macro_use]
 extern crate lazy_static;
@@ -148,28 +149,20 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting Autumn server.");
 
-    // std::env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
-    std::fs::create_dir_all("./tmp").unwrap();
-
-    let ip = "0.0.0.0:3000";
+    db::connect().await;
+    std::fs::create_dir_all("./files").unwrap();
 
     HttpServer::new(|| {
         App::new()
         .wrap(middleware::Logger::default())
-        .app_data(web::PayloadConfig::default().limit(1))
         .service(
             web::resource("/")
-                /*.app_data(actix_web::web::Bytes::configure(
-                    |cfg| {
-                        cfg.limit(1000000 * 250)
-                    }
-                ))*/
                 .route(web::get().to(index))
                 .route(web::post()
                 .to(save_file)),
         )
     })
-    .bind(ip)?
+    .bind(HOST.clone())?
     .run()
     .await
 }
