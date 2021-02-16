@@ -10,6 +10,11 @@ pub enum Error {
     FileTooLarge {
         max_size: usize
     },
+    FailedToReceive,
+    DatabaseError,
+    MissingData,
+    ProbeError,
+    IOError,
     LabelMe,
 }
 
@@ -23,6 +28,11 @@ impl ResponseError for Error {
     fn status_code(&self) -> StatusCode {
         match &self {
             Error::FileTooLarge { .. } => StatusCode::PAYLOAD_TOO_LARGE,
+            Error::FailedToReceive => StatusCode::BAD_REQUEST,
+            Error::DatabaseError => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::MissingData => StatusCode::BAD_REQUEST,
+            Error::ProbeError => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::IOError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::LabelMe => StatusCode::INTERNAL_SERVER_ERROR
         }
     }

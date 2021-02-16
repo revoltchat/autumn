@@ -22,8 +22,8 @@ pub fn get_collection(collection: &str) -> Collection {
 #[serde(tag = "type")]
 pub enum Metadata {
     File,
-    Image { width: usize, height: usize },
-    Video { width: usize, height: usize },
+    Image { width: isize, height: isize },
+    Video { width: isize, height: isize },
     Audio
 }
 

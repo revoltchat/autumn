@@ -13,6 +13,7 @@ extern crate tree_magic;
 
 use log::info;
 use imagesize;
+use web::PayloadConfig;
 use std::io::Write;
 use nanoid::nanoid;
 use ffprobe::ffprobe;
@@ -24,14 +25,14 @@ use actix_web::{App, HttpResponse, HttpServer, middleware, web};
 
 async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
     if let Ok(Some(mut field)) = payload.try_next().await {
-        let content_type = field.content_disposition().unwrap();
-        let filename = content_type.get_filename().unwrap().to_string();
+        let content_type = field.content_disposition().ok_or_else(|| Error::FailedToReceive)?;
+        let filename = content_type.get_filename().ok_or_else(|| Error::FailedToReceive)?.to_string();
 
-        // ? Read multipart data into a buffer.        
+        // ? Read multipart data into a buffer.
         let mut file_size: usize = 0;
         let mut buf: Vec<u8> = Vec::new();
         while let Some(chunk) = field.next().await {
-            let data = chunk.unwrap();
+            let data = chunk.map_err(|_| Error::FailedToReceive)?;
             file_size += data.len();
 
             if file_size > *FILE_SIZE_LIMIT {
@@ -43,7 +44,6 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
 
         // ? Find the content-type of the data.
         let content_type = tree_magic::from_u8(&buf);
-        dbg!(&content_type);
         let s = &content_type[..];
 
         let metadata = match s {
@@ -51,25 +51,28 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
             /* png */ "image/png" |
             /* gif */ "image/gif"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
-                    Metadata::Image { width, height }
+                    Metadata::Image {
+                        width: TryFrom::try_from(width).unwrap(),
+                        height: TryFrom::try_from(height).unwrap()
+                    }
                 } else {
-                    return Err(Error::LabelMe)
+                    return Err(Error::ProbeError)
                 }
             }
             /*  mp4 */ "video/mp4" |
             /* webm */ "video/webm" => {
-                let tmp = NamedTempFile::new().unwrap();
-                let (mut tmp, path) = tmp.keep().unwrap();
+                let tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
+                let (mut tmp, path) = tmp.keep().map_err(|_| Error::IOError)?;
                 
                 buf = web::block(move || tmp.write_all(&buf).map(|_| buf)).await
                     .map_err(|_| Error::LabelMe)?;
                 
-                let data = ffprobe(path).unwrap();
-                let stream = data.streams.into_iter().next().unwrap();
+                let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
+                let stream = data.streams.into_iter().next().ok_or_else(|| Error::ProbeError)?;
                 
                 Metadata::Video {
-                    width: TryFrom::try_from(stream.width.unwrap()).unwrap(),
-                    height: TryFrom::try_from(stream.height.unwrap()).unwrap()
+                    width: TryFrom::try_from(stream.width.ok_or_else(|| Error::ProbeError)?).unwrap(),
+                    height: TryFrom::try_from(stream.height.ok_or_else(|| Error::ProbeError)?).unwrap()
                 }
             }
             /* mp3 */ "audio/mpeg" => {
@@ -89,16 +92,17 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
 
         get_collection("attachments")
             .insert_one(
-                to_document(&file).unwrap(),
+                to_document(&file)
+                    .map_err(|_| Error::DatabaseError)?,
                 None
             )
             .await
-            .unwrap();
+            .map_err(|_| Error::DatabaseError)?;
 
         let path = format!("./files/{}", &file.id);
         let mut f = web::block(|| std::fs::File::create(path))
             .await
-            .unwrap();
+            .map_err(|_| Error::IOError)?;
         
         web::block(move || f.write_all(&buf)).await
             .map_err(|_| Error::LabelMe)?;
@@ -107,42 +111,8 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
             HttpResponse::Ok()
                 .body(json!({ "id": file.id }))
         )
-
-        /*let fpath = format!("./tmp/{}", sanitize_filename::sanitize(&filename));
-
-        let mut f = {
-            let fpath = fpath.clone();
-            web::block(|| std::fs::File::create(fpath))
-                .await
-                .unwrap()
-        };
-        
-        let delete = |f: File| async {
-            drop(f);
-            let fpath = fpath.clone();
-            web::block(|| std::fs::remove_file(fpath))
-                .await
-                .unwrap();
-            
-            Err(Error::FileTooLarge)
-        };
-
-        let mut file_size: usize = 0;
-        while let Some(chunk) = field.next().await {
-            let data = chunk.unwrap();
-            file_size += data.len();
-
-            if file_size > *FILE_SIZE_LIMIT {
-                return delete(f).await;
-            }
-
-            f = web::block(move || f.write_all(&data).map(|_| f)).await
-                .map_err(|_| Error::LabelMe)?;
-        }
-
-        drop(f);*/
     } else {
-        Err(Error::LabelMe)
+        Err(Error::MissingData)
     }
 }
 
@@ -173,6 +143,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
         .wrap(middleware::Logger::default())
+        .app_data(PayloadConfig::new(10_000_000))
         .service(
             web::resource("/")
                 .route(web::get().to(index))
