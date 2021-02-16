@@ -1,6 +1,9 @@
 pub mod util;
 pub mod db;
 
+use db::*;
+use mongodb::bson::to_document;
+use serde_json::json;
 use util::result::Error;
 use util::variables::{FILE_SIZE_LIMIT, HOST};
 
@@ -10,32 +13,19 @@ extern crate tree_magic;
 
 use log::info;
 use imagesize;
+use std::io::Write;
 use nanoid::nanoid;
 use ffprobe::ffprobe;
 use std::convert::TryFrom;
 use tempfile::NamedTempFile;
-use std::{fs::File, io::Write};
 use actix_multipart::Multipart;
 use futures::{StreamExt, TryStreamExt};
 use actix_web::{App, HttpResponse, HttpServer, middleware, web};
 
-enum Metadata {
-    File,
-    Image { width: usize, height: usize },
-    Video { width: usize, height: usize },
-    Audio
-}
-
-struct Attachment {
-    id: String,
-    filename: String,
-    metadata: Metadata
-}
-
 async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
     if let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_disposition().unwrap();
-        let filename = content_type.get_filename().unwrap();
+        let filename = content_type.get_filename().unwrap().to_string();
 
         // ? Read multipart data into a buffer.        
         let mut file_size: usize = 0;
@@ -71,7 +61,7 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
                 let tmp = NamedTempFile::new().unwrap();
                 let (mut tmp, path) = tmp.keep().unwrap();
                 
-                web::block(move || tmp.write_all(&buf).map(|_| tmp)).await
+                buf = web::block(move || tmp.write_all(&buf).map(|_| buf)).await
                     .map_err(|_| Error::LabelMe)?;
                 
                 let data = ffprobe(path).unwrap();
@@ -89,6 +79,34 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
                 Metadata::File
             }
         };
+
+        let id = nanoid!(64);
+        let file = db::File {
+            id,
+            filename,
+            metadata
+        };
+
+        get_collection("attachments")
+            .insert_one(
+                to_document(&file).unwrap(),
+                None
+            )
+            .await
+            .unwrap();
+
+        let path = format!("./files/{}", &file.id);
+        let mut f = web::block(|| std::fs::File::create(path))
+            .await
+            .unwrap();
+        
+        web::block(move || f.write_all(&buf)).await
+            .map_err(|_| Error::LabelMe)?;
+
+        Ok(
+            HttpResponse::Ok()
+                .body(json!({ "id": file.id }))
+        )
 
         /*let fpath = format!("./tmp/{}", sanitize_filename::sanitize(&filename));
 
@@ -123,9 +141,9 @@ async fn save_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
         }
 
         drop(f);*/
+    } else {
+        Err(Error::LabelMe)
     }
-
-    Ok(HttpResponse::Ok().into())
 }
 
 fn index() -> HttpResponse {

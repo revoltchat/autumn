@@ -1,5 +1,6 @@
 use crate::util::variables::MONGO_URI;
 
+use serde::{Serialize, Deserialize};
 use mongodb::{Client, Collection};
 use once_cell::sync::OnceCell;
 
@@ -15,4 +16,21 @@ pub async fn connect() {
 
 pub fn get_collection(collection: &str) -> Collection {
     DBCONN.get().unwrap().database("revolt").collection(collection)
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Metadata {
+    File,
+    Image { width: usize, height: usize },
+    Video { width: usize, height: usize },
+    Audio
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct File {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub filename: String,
+    pub metadata: Metadata
 }
