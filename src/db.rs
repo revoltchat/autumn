@@ -1,8 +1,8 @@
 use crate::util::variables::MONGO_URI;
 
-use serde::{Serialize, Deserialize};
 use mongodb::{Client, Collection};
 use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 
 static DBCONN: OnceCell<Client> = OnceCell::new();
 
@@ -15,7 +15,11 @@ pub async fn connect() {
 }
 
 pub fn get_collection(collection: &str) -> Collection {
-    DBCONN.get().unwrap().database("revolt").collection(collection)
+    DBCONN
+        .get()
+        .unwrap()
+        .database("revolt")
+        .collection(collection)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -24,7 +28,7 @@ pub enum Metadata {
     File,
     Image { width: isize, height: isize },
     Video { width: isize, height: isize },
-    Audio
+    Audio,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -33,5 +37,5 @@ pub struct File {
     pub id: String,
     pub filename: String,
     pub metadata: Metadata,
-    pub content_type: String
+    pub content_type: String,
 }

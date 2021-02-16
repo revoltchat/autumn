@@ -1,15 +1,13 @@
-use serde_json;
-use serde::Serialize;
-use std::fmt::Display;
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
+use serde::Serialize;
+use serde_json;
+use std::fmt::Display;
 
 #[derive(Serialize, Debug)]
 #[serde(tag = "type")]
 pub enum Error {
-    FileTooLarge {
-        max_size: usize
-    },
+    FileTooLarge { max_size: usize },
     FailedToReceive,
     DatabaseError,
     MissingData,
@@ -35,7 +33,7 @@ impl ResponseError for Error {
             Error::ProbeError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::NotFound => StatusCode::NOT_FOUND,
             Error::IOError => StatusCode::INTERNAL_SERVER_ERROR,
-            Error::LabelMe => StatusCode::INTERNAL_SERVER_ERROR
+            Error::LabelMe => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
