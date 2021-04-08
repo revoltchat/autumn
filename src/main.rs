@@ -34,21 +34,21 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .app_data(PayloadConfig::new(10_000_000))
             .service(
-                web::resource("/")
+                web::resource("/{type:[^/]*}")
                     // .route(web::get().to(routes::test_form::test_form))
                     .route(web::post().to(routes::upload::post)),
             )
             .route(
-                "/download/{filename:.*}",
-                web::get().to(routes::static_download::get),
+                "/{type:[^/]*}/download/{filename:.*}",
+                web::get().to(routes::download::get),
             )
             .route(
-                "/{filename:[^/]*}",
-                web::get().to(routes::static_serve::get),
+                "/{type:[^/]*}/{filename:[^/]*}",
+                web::get().to(routes::serve::get),
             )
             .route(
-                "/{filename:[^/]*}/{fn:.*}",
-                web::get().to(routes::static_serve::get),
+                "/{type:[^/]*}/{filename:[^/]*}/{fn:.*}",
+                web::get().to(routes::serve::get),
             )
     })
     .bind(HOST.clone())?

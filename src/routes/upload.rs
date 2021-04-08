@@ -1,6 +1,6 @@
 use crate::db::*;
 use crate::util::result::Error;
-use crate::util::variables::FILE_SIZE_LIMIT;
+use crate::util::variables::{USE_S3, FILE_SIZE_LIMIT, get_s3_bucket};
 
 use actix_multipart::Multipart;
 use actix_web::{web, HttpResponse};
@@ -95,14 +95,25 @@ pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
             .await
             .map_err(|_| Error::DatabaseError)?;
 
-        let path = format!("./files/{}", &file.id);
-        let mut f = web::block(|| std::fs::File::create(path))
-            .await
-            .map_err(|_| Error::IOError)?;
+        if *USE_S3 {
+            let bucket = get_s3_bucket()?;
 
-        web::block(move || f.write_all(&buf))
-            .await
-            .map_err(|_| Error::LabelMe)?;
+            let (_, code) = bucket.put_object(format!("/{}", file.id), &buf)
+                .await.unwrap();
+            
+            if code != 200 {
+                return Err(Error::LabelMe)
+            }
+        } else {
+            let path = format!("./files/{}", &file.id);
+            let mut f = web::block(|| std::fs::File::create(path))
+                .await
+                .map_err(|_| Error::IOError)?;
+
+            web::block(move || f.write_all(&buf))
+                .await
+                .map_err(|_| Error::LabelMe)?;
+        }
 
         Ok(HttpResponse::Ok().body(json!({ "id": file.id })))
     } else {
