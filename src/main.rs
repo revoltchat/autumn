@@ -53,6 +53,10 @@ async fn main() -> std::io::Result<()> {
                 "/{tag:[^/]*}/{filename:[^/]*}/{fn:.*}",
                 web::get().to(routes::serve::get),
             )
+            .route(
+                "/",
+                web::get().to(routes::index::get),
+            )
     })
     .bind(HOST.clone())?
     .run()

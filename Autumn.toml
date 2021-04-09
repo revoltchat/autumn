@@ -6,15 +6,16 @@
 
     # User Avatars
     [tags.avatars]
-        max_size = 5000000
+        max_size = 4000000
         restrict_content_type = "Image"
         
     # Channel / Server Icons
     [tags.icons]
-        max_size = 5000000
+        max_size = 4000000
         restrict_content_type = "Image"
         
     # Banners
     [tags.banners]
-        max_size = 12000000
+        enabled = false
+        max_size = 6000000
         restrict_content_type = "Image"

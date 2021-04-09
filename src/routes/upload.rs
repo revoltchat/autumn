@@ -16,8 +16,17 @@ use std::io::Write;
 use tempfile::NamedTempFile;
 use content_inspector::inspect;
 
-pub async fn option() -> HttpResponse {
-    HttpResponse::Ok().into()
+pub fn determine_video_size(buf: Vec<u8>) -> Result<(isize, isize), Error> {
+    let mut tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
+    tmp.write_all(&buf).map_err(|_| Error::IOError)?;
+
+    let data = ffprobe(tmp.path()).map_err(|_| Error::ProbeError)?;
+    let stream = data.streams.into_iter().next().ok_or_else(|| Error::ProbeError)?;
+
+    Ok((
+        TryFrom::try_from(stream.width.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?,
+        TryFrom::try_from(stream.height.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?
+    ))
 }
 
 pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpResponse, Error> {
@@ -59,8 +68,8 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             /* webp */ "image/webp"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
                     Metadata::Image {
-                        width: TryFrom::try_from(width).unwrap(),
-                        height: TryFrom::try_from(height).unwrap()
+                        width: TryFrom::try_from(width).map_err(|_| Error::IOError)?,
+                        height: TryFrom::try_from(height).map_err(|_| Error::IOError)?
                     }
                 } else {
                     Metadata::File
@@ -68,16 +77,14 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             }
             /*  mp4 */ "video/mp4" |
             /* webm */ "video/webm" => {
-                // ! FIXME: handle errors by falling back to File
-                let tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
-                let (mut tmp, path) = tmp.keep().map_err(|_| Error::IOError)?;
-                buf = web::block(move || tmp.write_all(&buf).map(|_| buf)).await
-                    .map_err(|_| Error::LabelMe)?;
-                let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
-                let stream = data.streams.into_iter().next().ok_or_else(|| Error::ProbeError)?;
+                let cloned = buf.clone();
+                let (width, height) =
+                    web::block(move || determine_video_size(cloned)).await
+                        .map_err(|_| Error::LabelMe)?;
+                
                 Metadata::Video {
-                    width: TryFrom::try_from(stream.width.ok_or(Error::ProbeError)?).unwrap(),
-                    height: TryFrom::try_from(stream.height.ok_or(Error::ProbeError)?).unwrap()
+                    width,
+                    height
                 }
             }
             /* mp3 */ "audio/mpeg" => {

@@ -14,17 +14,24 @@ pub enum ContentType {
     Audio
 }
 
+fn default_as_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Tag {
     pub max_size: usize,
-    pub enabled: Option<bool>,
+    #[serde(default = "default_as_true")]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub serve_if_field_present: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub restrict_content_type: Option<ContentType>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    tags: HashMap<String, Tag>
+    pub tags: HashMap<String, Tag>
 }
 
 static INSTANCE: OnceCell<Config> = OnceCell::new();
@@ -50,7 +57,7 @@ pub fn get_tag(request: &HttpRequest) -> Result<&Tag, Error> {
     let config = Config::global();
 
     if let Some(tag) = config.tags.get(id) {
-        if let Some(false) = tag.enabled {
+        if !tag.enabled {
             return Err(Error::LabelMe)
         }
 
