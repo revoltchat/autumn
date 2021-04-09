@@ -8,12 +8,15 @@ use std::fmt::Display;
 #[serde(tag = "type")]
 pub enum Error {
     FileTooLarge { max_size: usize },
+    FileTypeNotAllowed,
     FailedToReceive,
     DatabaseError,
     MissingData,
+    UnknownTag,
     ProbeError,
     NotFound,
     IOError,
+    S3Error,
     LabelMe,
 }
 
@@ -27,12 +30,15 @@ impl ResponseError for Error {
     fn status_code(&self) -> StatusCode {
         match &self {
             Error::FileTooLarge { .. } => StatusCode::PAYLOAD_TOO_LARGE,
+            Error::FileTypeNotAllowed => StatusCode::BAD_REQUEST,
             Error::FailedToReceive => StatusCode::BAD_REQUEST,
             Error::DatabaseError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::MissingData => StatusCode::BAD_REQUEST,
+            Error::UnknownTag => StatusCode::BAD_REQUEST,
             Error::ProbeError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::NotFound => StatusCode::NOT_FOUND,
             Error::IOError => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::S3Error => StatusCode::INTERNAL_SERVER_ERROR,
             Error::LabelMe => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

@@ -107,7 +107,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
 
                     buf = web::block(move || file.0.read_to_end(&mut buf).map(|_| buf))
                         .await
-                        .map_err(|_| Error::LabelMe)?;
+                        .map_err(|_| Error::IOError)?;
 
                     Metadata::Video {
                         width,
@@ -136,7 +136,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 (ContentType::Audio, Metadata::Audio) => false,
                 _ => true
             } {
-                return Err(Error::LabelMe)
+                return Err(Error::FileTypeNotAllowed)
             }
         }
 
@@ -161,7 +161,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 .await.unwrap();
             
             if code != 200 {
-                return Err(Error::LabelMe)
+                return Err(Error::S3Error)
             }
         } else {
             let path = format!("{}/{}", *LOCAL_STORAGE_PATH, &file.id);
@@ -171,7 +171,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
 
             web::block(move || f.write_all(&buf))
                 .await
-                .map_err(|_| Error::LabelMe)?;
+                .map_err(|_| Error::IOError)?;
         }
 
         Ok(HttpResponse::Ok().body(json!({ "id": file.id })))

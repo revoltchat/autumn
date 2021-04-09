@@ -27,5 +27,5 @@ lazy_static! {
 
 pub fn get_s3_bucket() -> Result<s3::Bucket, Error> {
     s3::Bucket::new_with_path_style(&"file-uploads", S3_REGION.clone(), S3_CREDENTIALS.clone())
-        .map_err(|_| Error::LabelMe)
+        .map_err(|_| Error::S3Error)
 }

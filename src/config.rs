@@ -58,11 +58,11 @@ pub fn get_tag(request: &HttpRequest) -> Result<&Tag, Error> {
 
     if let Some(tag) = config.tags.get(id) {
         if !tag.enabled {
-            return Err(Error::LabelMe)
+            return Err(Error::UnknownTag)
         }
 
         Ok(tag)
     } else {
-        Err(Error::LabelMe)
+        Err(Error::UnknownTag)
     }
 }

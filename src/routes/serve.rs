@@ -40,10 +40,10 @@ pub async fn fetch_file(id: &str, metadata: Metadata, resize: Option<Resize>) ->
 
     if *USE_S3 {
         let bucket = get_s3_bucket()?;
-        let (data, code) = bucket.get_object(format!("/{}", id)).await.map_err(|_| Error::LabelMe)?;
+        let (data, code) = bucket.get_object(format!("/{}", id)).await.map_err(|_| Error::S3Error)?;
         
         if code != 200 {
-            return Err(Error::LabelMe);
+            return Err(Error::S3Error);
         }
 
         contents = data;
@@ -52,8 +52,8 @@ pub async fn fetch_file(id: &str, metadata: Metadata, resize: Option<Resize>) ->
             .parse()
             .map_err(|_| Error::IOError)?;
 
-        let mut f = File::open(path.clone()).await.map_err(|_| Error::LabelMe)?;
-        f.read_to_end(&mut contents).await.map_err(|_| Error::LabelMe)?;
+        let mut f = File::open(path.clone()).await.map_err(|_| Error::IOError)?;
+        f.read_to_end(&mut contents).await.map_err(|_| Error::IOError)?;
     }
 
     if let Some(parameters) = resize {
