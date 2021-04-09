@@ -12,15 +12,13 @@ use mongodb::bson::to_document;
 use nanoid::nanoid;
 use serde_json::json;
 use std::convert::TryFrom;
-use std::io::Write;
+use std::io::{Read, Write};
+use std::process::Command;
 use tempfile::NamedTempFile;
 use content_inspector::inspect;
 
-pub fn determine_video_size(buf: Vec<u8>) -> Result<(isize, isize), Error> {
-    let mut tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
-    tmp.write_all(&buf).map_err(|_| Error::IOError)?;
-
-    let data = ffprobe(tmp.path()).map_err(|_| Error::ProbeError)?;
+pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Error> {
+    let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
     let stream = data.streams.into_iter().next().ok_or_else(|| Error::ProbeError)?;
 
     Ok((
@@ -67,6 +65,8 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             /* gif */ "image/gif" |
             /* webp */ "image/webp"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
+                    // ! FIXME: if jpeg, re-encode using image, may save space and removes EXIF data.
+
                     Metadata::Image {
                         width: TryFrom::try_from(width).map_err(|_| Error::IOError)?,
                         height: TryFrom::try_from(height).map_err(|_| Error::IOError)?
@@ -77,14 +77,44 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             }
             /*  mp4 */ "video/mp4" |
             /* webm */ "video/webm" => {
-                let cloned = buf.clone();
-                let (width, height) =
-                    web::block(move || determine_video_size(cloned)).await
+                let ext = if s == "video/mp4" { "mp4" } else { "webm" };
+
+                let mut tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
+                tmp.write_all(&buf).map_err(|_| Error::IOError)?;
+
+                if let Ok(((width, height), tmp)) = web::block(move || determine_video_size(tmp.path()).map(|t| (t, tmp))).await {
+                    buf = vec![];
+                    let out_tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
+                    let out_tmp = web::block(move ||
+                        Command::new("ffmpeg")
+                            .args(&[
+                                "-y",                                                       // Overwrite the temporary file.
+                                "-i", tmp.path().to_str().ok_or_else(|| Error::IOError)?,   // Read the original uploaded file.
+                                "-map_metadata", "-1",                                      // Strip any metadata.
+                                "-c:v", "copy", "-c:a", "copy",                             // Copy video / audio data to new file.
+                                "-f", ext,                                                  // Select the correct file format.
+                                out_tmp.path().to_str().ok_or_else(|| Error::IOError)?])    // Save to new temporary file.
+                            .output()
+                            .map(|_| out_tmp)
+                            .map_err(|_| Error::IOError)
+                    )
+                    .await
+                    .map_err(|_| Error::IOError)?;
+
+                    let mut file = web::block(move || std::fs::File::open(out_tmp.path()).map(|f| (f, out_tmp)))
+                        .await
+                        .map_err(|_| Error::IOError)?;
+
+                    buf = web::block(move || file.0.read_to_end(&mut buf).map(|_| buf))
+                        .await
                         .map_err(|_| Error::LabelMe)?;
-                
-                Metadata::Video {
-                    width,
-                    height
+
+                    Metadata::Video {
+                        width,
+                        height
+                    }
+                } else {
+                    Metadata::File
                 }
             }
             /* mp3 */ "audio/mpeg" => {

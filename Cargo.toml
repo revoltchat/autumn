@@ -31,4 +31,4 @@ actix-multipart = "0.3.0"
 sanitize-filename = "0.3.0"
 content_inspector = "0.2.4"
 serde = { version = "1.0.118", features = ["derive"] }
-tokio = { version = "1.4.0", features = ["io-util", "fs"] }
+tokio = { version = "1.4.0", features = ["rt", "io-util", "fs"] }
