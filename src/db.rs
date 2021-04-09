@@ -2,10 +2,10 @@ use crate::config::Tag;
 use crate::util::result::Error;
 use crate::util::variables::MONGO_URI;
 
-use once_cell::sync::OnceCell;
-use mongodb::{Client, Collection};
-use serde::{Deserialize, Serialize};
 use mongodb::bson::{doc, from_document};
+use mongodb::{Client, Collection};
+use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 
 static DBCONN: OnceCell<Client> = OnceCell::new();
 
@@ -42,7 +42,7 @@ pub struct File {
     pub filename: String,
     pub metadata: Metadata,
     pub content_type: String,
-    pub size: isize
+    pub size: isize,
 }
 
 pub async fn find_file(id: &str, tag: &Tag) -> Result<File, Error> {
@@ -57,6 +57,6 @@ pub async fn find_file(id: &str, tag: &Tag) -> Result<File, Error> {
         .await
         .map_err(|_| Error::DatabaseError)?
         .ok_or_else(|| Error::NotFound)?;
-    
+
     from_document(doc).map_err(|_| Error::DatabaseError)
 }

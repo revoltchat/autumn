@@ -1,9 +1,9 @@
-pub mod db;
-pub mod util;
 pub mod config;
+pub mod db;
 pub mod routes;
+pub mod util;
 
-use util::variables::{HOST, USE_S3, LOCAL_STORAGE_PATH};
+use util::variables::{HOST, LOCAL_STORAGE_PATH, USE_S3};
 
 #[macro_use]
 extern crate lazy_static;
@@ -37,10 +37,7 @@ async fn main() -> std::io::Result<()> {
                     .supports_credentials(),
             )
             .wrap(middleware::Logger::default())
-            .route(
-                "/{tag:[^/]*}",
-                web::post().to(routes::upload::post),
-            )
+            .route("/{tag:[^/]*}", web::post().to(routes::upload::post))
             .route(
                 "/{tag:[^/]*}/download/{filename:.*}",
                 web::get().to(routes::download::get),
@@ -53,10 +50,7 @@ async fn main() -> std::io::Result<()> {
                 "/{tag:[^/]*}/{filename:[^/]*}/{fn:.*}",
                 web::get().to(routes::serve::get),
             )
-            .route(
-                "/",
-                web::get().to(routes::index::get),
-            )
+            .route("/", web::get().to(routes::index::get))
     })
     .bind(HOST.clone())?
     .run()

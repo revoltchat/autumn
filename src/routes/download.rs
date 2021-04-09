@@ -1,6 +1,6 @@
-use crate::util::result::Error;
 use crate::config::get_tag;
 use crate::db::find_file;
+use crate::util::result::Error;
 
 use super::serve::fetch_file;
 
@@ -14,7 +14,10 @@ pub async fn get(req: HttpRequest) -> Result<HttpResponse, Error> {
     let (contents, _) = fetch_file(id, file.metadata, None).await?;
 
     Ok(HttpResponse::Ok()
-        .set_header("Content-Disposition", format!("attachment; filename=\"{}\"", file.filename))
+        .set_header(
+            "Content-Disposition",
+            format!("attachment; filename=\"{}\"", file.filename),
+        )
         .content_type(file.content_type)
         .body(contents))
 }

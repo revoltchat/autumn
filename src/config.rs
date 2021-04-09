@@ -1,6 +1,6 @@
 use actix_web::HttpRequest;
-use serde::{Serialize, Deserialize};
 use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -11,7 +11,7 @@ use crate::util::result::Error;
 pub enum ContentType {
     Image,
     Video,
-    Audio
+    Audio,
 }
 
 fn default_as_true() -> bool {
@@ -31,7 +31,7 @@ pub struct Tag {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    pub tags: HashMap<String, Tag>
+    pub tags: HashMap<String, Tag>,
 }
 
 static INSTANCE: OnceCell<Config> = OnceCell::new();
@@ -58,7 +58,7 @@ pub fn get_tag(request: &HttpRequest) -> Result<&Tag, Error> {
 
     if let Some(tag) = config.tags.get(id) {
         if !tag.enabled {
-            return Err(Error::UnknownTag)
+            return Err(Error::UnknownTag);
         }
 
         Ok(tag)

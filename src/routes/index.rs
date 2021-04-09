@@ -1,7 +1,7 @@
 use crate::config::Config;
 
-use serde_json::json;
 use actix_web::HttpResponse;
+use serde_json::json;
 
 pub async fn get() -> HttpResponse {
     let config = Config::global();
@@ -10,6 +10,5 @@ pub async fn get() -> HttpResponse {
         "tags": config.tags
     });
 
-    HttpResponse::Ok()
-        .body(body)
+    HttpResponse::Ok().body(body)
 }

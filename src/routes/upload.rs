@@ -1,10 +1,11 @@
+use crate::config::{get_tag, ContentType};
 use crate::db::*;
 use crate::util::result::Error;
-use crate::config::{ContentType, get_tag};
-use crate::util::variables::{USE_S3, LOCAL_STORAGE_PATH, get_s3_bucket};
+use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3};
 
 use actix_multipart::Multipart;
 use actix_web::{web, HttpRequest, HttpResponse};
+use content_inspector::inspect;
 use ffprobe::ffprobe;
 use futures::{StreamExt, TryStreamExt};
 use imagesize;
@@ -15,15 +16,18 @@ use std::convert::TryFrom;
 use std::io::{Read, Write};
 use std::process::Command;
 use tempfile::NamedTempFile;
-use content_inspector::inspect;
 
 pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Error> {
     let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
-    let stream = data.streams.into_iter().next().ok_or_else(|| Error::ProbeError)?;
+    let stream = data
+        .streams
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::ProbeError)?;
 
     Ok((
         TryFrom::try_from(stream.width.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?,
-        TryFrom::try_from(stream.height.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?
+        TryFrom::try_from(stream.height.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?,
     ))
 }
 
@@ -134,9 +138,9 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 (ContentType::Image, Metadata::Image { .. }) => false,
                 (ContentType::Video, Metadata::Video { .. }) => false,
                 (ContentType::Audio, Metadata::Audio) => false,
-                _ => true
+                _ => true,
             } {
-                return Err(Error::FileTypeNotAllowed)
+                return Err(Error::FileTypeNotAllowed);
             }
         }
 
@@ -146,7 +150,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             filename,
             metadata,
             content_type,
-            size: file_size as isize
+            size: file_size as isize,
         };
 
         get_collection("attachments")
@@ -157,11 +161,13 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         if *USE_S3 {
             let bucket = get_s3_bucket()?;
 
-            let (_, code) = bucket.put_object(format!("/{}", file.id), &buf)
-                .await.unwrap();
-            
+            let (_, code) = bucket
+                .put_object(format!("/{}", file.id), &buf)
+                .await
+                .map_err(|_| Error::S3Error)?;
+
             if code != 200 {
-                return Err(Error::S3Error)
+                return Err(Error::S3Error);
             }
         } else {
             let path = format!("{}/{}", *LOCAL_STORAGE_PATH, &file.id);
