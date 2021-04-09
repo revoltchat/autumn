@@ -8,8 +8,10 @@ edition = "2018"
 
 [dependencies]
 log = "0.4.11"
+toml = "0.5.8"
 mime = "0.3.16"
 nanoid = "0.3.0"
+image = "0.23.14"
 mongodb = "1.1.1"
 dotenv = "0.15.0"
 ffprobe = "0.1.0"
@@ -27,5 +29,6 @@ lazy_static = "1.4.0"
 actix-files = "0.5.0"
 actix-multipart = "0.3.0"
 sanitize-filename = "0.3.0"
+content_inspector = "0.2.4"
 serde = { version = "1.0.118", features = ["derive"] }
 tokio = { version = "1.4.0", features = ["io-util", "fs"] }

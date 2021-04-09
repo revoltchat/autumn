@@ -1,8 +1,11 @@
+use crate::config::Tag;
+use crate::util::result::Error;
 use crate::util::variables::MONGO_URI;
 
-use mongodb::{Client, Collection};
 use once_cell::sync::OnceCell;
+use mongodb::{Client, Collection};
 use serde::{Deserialize, Serialize};
+use mongodb::bson::{doc, from_document};
 
 static DBCONN: OnceCell<Client> = OnceCell::new();
 
@@ -22,20 +25,38 @@ pub fn get_collection(collection: &str) -> Collection {
         .collection(collection)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum Metadata {
     File,
+    Text,
     Image { width: isize, height: isize },
     Video { width: isize, height: isize },
     Audio,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct File {
     #[serde(rename = "_id")]
     pub id: String,
     pub filename: String,
     pub metadata: Metadata,
     pub content_type: String,
+    pub size: isize
+}
+
+pub async fn find_file(id: &str, tag: &Tag) -> Result<File, Error> {
+    let mut query = doc! { "_id": id };
+
+    if let Some(field) = &tag.serve_if_field_present {
+        query.insert(field, doc! { "$exists": true });
+    }
+
+    let doc = get_collection("attachments")
+        .find_one(query, None)
+        .await
+        .map_err(|_| Error::DatabaseError)?
+        .ok_or_else(|| Error::NotFound)?;
+    
+    from_document(doc).map_err(|_| Error::DatabaseError)
 }

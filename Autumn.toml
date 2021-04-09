@@ -1,0 +1,20 @@
+[tags]
+    # File Uploads
+    [tags.attachments]
+        max_size = 20000000
+        # serve_if_field_present = "message"
+
+    # User Avatars
+    [tags.avatars]
+        max_size = 5000000
+        restrict_content_type = "Image"
+        
+    # Channel / Server Icons
+    [tags.icons]
+        max_size = 5000000
+        restrict_content_type = "Image"
+        
+    # Banners
+    [tags.banners]
+        max_size = 12000000
+        restrict_content_type = "Image"

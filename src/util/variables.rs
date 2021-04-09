@@ -11,8 +11,6 @@ lazy_static! {
         env::var("AUTUMN_MONGO_URI").expect("Missing AUTUMN_MONGO_URI environment variable.");
     pub static ref CORS_ALLOWED_ORIGIN: String =
         env::var("AUTUMN_CORS_ALLOWED_ORIGIN").expect("Missing AUTUMN_CORS_ALLOWED_ORIGIN environment variable.");
-    pub static ref FILE_SIZE_LIMIT: usize =
-        env::var("AUTUMN_FILE_SIZE_LIMIT").expect("Missing AUTUMN_FILE_SIZE_LIMIT environment variable.").parse().unwrap();
 
     // Storage Settings
     pub static ref LOCAL_STORAGE_PATH: String =

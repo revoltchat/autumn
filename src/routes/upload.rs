@@ -1,9 +1,10 @@
 use crate::db::*;
 use crate::util::result::Error;
-use crate::util::variables::{USE_S3, FILE_SIZE_LIMIT, get_s3_bucket};
+use crate::config::{ContentType, get_tag};
+use crate::util::variables::{USE_S3, LOCAL_STORAGE_PATH, get_s3_bucket};
 
 use actix_multipart::Multipart;
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use ffprobe::ffprobe;
 use futures::{StreamExt, TryStreamExt};
 use imagesize;
@@ -13,12 +14,15 @@ use serde_json::json;
 use std::convert::TryFrom;
 use std::io::Write;
 use tempfile::NamedTempFile;
+use content_inspector::inspect;
 
 pub async fn option() -> HttpResponse {
     HttpResponse::Ok().into()
 }
 
-pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
+pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpResponse, Error> {
+    let tag = get_tag(&req)?;
+
     if let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field
             .content_disposition()
@@ -35,9 +39,9 @@ pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
             let data = chunk.map_err(|_| Error::FailedToReceive)?;
             file_size += data.len();
 
-            if file_size > *FILE_SIZE_LIMIT {
+            if file_size > tag.max_size {
                 return Err(Error::FileTooLarge {
-                    max_size: *FILE_SIZE_LIMIT,
+                    max_size: tag.max_size,
                 });
             }
 
@@ -51,18 +55,20 @@ pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
         let metadata = match s {
             /* jpg */ "image/jpeg" |
             /* png */ "image/png" |
-            /* gif */ "image/gif"  => {
+            /* gif */ "image/gif" |
+            /* webp */ "image/webp"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
                     Metadata::Image {
                         width: TryFrom::try_from(width).unwrap(),
                         height: TryFrom::try_from(height).unwrap()
                     }
                 } else {
-                    return Err(Error::ProbeError)
+                    Metadata::File
                 }
             }
             /*  mp4 */ "video/mp4" |
             /* webm */ "video/webm" => {
+                // ! FIXME: handle errors by falling back to File
                 let tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
                 let (mut tmp, path) = tmp.keep().map_err(|_| Error::IOError)?;
                 buf = web::block(move || tmp.write_all(&buf).map(|_| buf)).await
@@ -78,9 +84,24 @@ pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
                 Metadata::Audio
             }
             _ => {
-                Metadata::File
+                if inspect(&buf).is_text() {
+                    Metadata::Text
+                } else {
+                    Metadata::File
+                }
             }
         };
+
+        if let Some(content_type) = &tag.restrict_content_type {
+            if match (content_type, &metadata) {
+                (ContentType::Image, Metadata::Image { .. }) => false,
+                (ContentType::Video, Metadata::Video { .. }) => false,
+                (ContentType::Audio, Metadata::Audio) => false,
+                _ => true
+            } {
+                return Err(Error::LabelMe)
+            }
+        }
 
         let id = nanoid!(42);
         let file = crate::db::File {
@@ -88,6 +109,7 @@ pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
             filename,
             metadata,
             content_type,
+            size: file_size as isize
         };
 
         get_collection("attachments")
@@ -105,7 +127,7 @@ pub async fn post(mut payload: Multipart) -> Result<HttpResponse, Error> {
                 return Err(Error::LabelMe)
             }
         } else {
-            let path = format!("./files/{}", &file.id);
+            let path = format!("{}/{}", *LOCAL_STORAGE_PATH, &file.id);
             let mut f = web::block(|| std::fs::File::create(path))
                 .await
                 .map_err(|_| Error::IOError)?;
