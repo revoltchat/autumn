@@ -10,7 +10,7 @@ pub async fn get(req: HttpRequest) -> Result<HttpResponse, Error> {
     let tag = get_tag(&req)?;
 
     let id = req.match_info().query("filename");
-    let file = find_file(id, &tag).await?;
+    let file = find_file(id, tag).await?;
     let (contents, _) = fetch_file(id, file.metadata, None).await?;
 
     Ok(HttpResponse::Ok()

@@ -34,7 +34,7 @@ pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Er
 
 pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpResponse, Error> {
     let config = Config::global();
-    let tag = get_tag(&req)?;
+    let (tag_id, tag) = get_tag(&req)?;
 
     if let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field
@@ -162,6 +162,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         let id = nanoid!(42);
         let file = crate::db::File {
             id,
+            tag: tag_id,
             filename,
             metadata,
             content_type,

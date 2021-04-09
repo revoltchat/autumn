@@ -101,7 +101,7 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     let tag = get_tag(&req)?;
 
     let id = req.match_info().query("filename");
-    let file = find_file(id, &tag).await?;
+    let file = find_file(id, tag).await?;
     let (contents, content_type) = fetch_file(id, file.metadata, Some(resize.0)).await?;
 
     Ok(HttpResponse::Ok()

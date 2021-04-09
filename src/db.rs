@@ -39,16 +39,17 @@ pub enum Metadata {
 pub struct File {
     #[serde(rename = "_id")]
     pub id: String,
+    pub tag: String,
     pub filename: String,
     pub metadata: Metadata,
     pub content_type: String,
     pub size: isize,
 }
 
-pub async fn find_file(id: &str, tag: &Tag) -> Result<File, Error> {
-    let mut query = doc! { "_id": id };
+pub async fn find_file(id: &str, tag: (String, &Tag)) -> Result<File, Error> {
+    let mut query = doc! { "_id": id, "tag": tag.0 };
 
-    if let Some(field) = &tag.serve_if_field_present {
+    if let Some(field) = &tag.1.serve_if_field_present {
         query.insert(field, doc! { "$exists": true });
     }
 

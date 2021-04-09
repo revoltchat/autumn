@@ -53,7 +53,7 @@ impl Config {
     }
 }
 
-pub fn get_tag(request: &HttpRequest) -> Result<&Tag, Error> {
+pub fn get_tag(request: &HttpRequest) -> Result<(String, &Tag), Error> {
     let id = request.match_info().query("tag");
     let config = Config::global();
 
@@ -62,7 +62,7 @@ pub fn get_tag(request: &HttpRequest) -> Result<&Tag, Error> {
             return Err(Error::UnknownTag);
         }
 
-        Ok(tag)
+        Ok((id.to_string(), tag))
     } else {
         Err(Error::UnknownTag)
     }
