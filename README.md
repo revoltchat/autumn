@@ -2,8 +2,10 @@
 
 ## Features
 
-- Strips metadata from video files.
+- Save files locally or on S3.
+- Support for different tags / buckets with different file requirements.
+- Strips metadata from JPEGs and video files.
 
 ## To-Do
 
-- Strip EXIF data from JPEGs. (FIXME)
+- Make EXIF stripping optional, but on by default. (?exif=false)

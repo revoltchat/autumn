@@ -1,3 +1,5 @@
+jpeg_quality = 80
+
 [tags]
     # File Uploads
     [tags.attachments]

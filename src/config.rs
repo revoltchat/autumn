@@ -32,6 +32,7 @@ pub struct Tag {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub tags: HashMap<String, Tag>,
+    pub jpeg_quality: u8
 }
 
 static INSTANCE: OnceCell<Config> = OnceCell::new();

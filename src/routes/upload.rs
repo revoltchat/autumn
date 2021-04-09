@@ -1,4 +1,4 @@
-use crate::config::{get_tag, ContentType};
+use crate::config::{Config, ContentType, get_tag};
 use crate::db::*;
 use crate::util::result::Error;
 use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3};
@@ -13,9 +13,10 @@ use mongodb::bson::to_document;
 use nanoid::nanoid;
 use serde_json::json;
 use std::convert::TryFrom;
-use std::io::{Read, Write};
+use std::io::{Read, Write, Cursor};
 use std::process::Command;
 use tempfile::NamedTempFile;
+use image::io::Reader as ImageReader;
 
 pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Error> {
     let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
@@ -32,6 +33,7 @@ pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Er
 }
 
 pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpResponse, Error> {
+    let config = Config::global();
     let tag = get_tag(&req)?;
 
     if let Ok(Some(mut field)) = payload.try_next().await {
@@ -69,7 +71,20 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             /* gif */ "image/gif" |
             /* webp */ "image/webp"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
-                    // ! FIXME: if jpeg, re-encode using image, may save space and removes EXIF data.
+                    if s == "image/jpeg" {
+                        let mut bytes: Vec<u8> = Vec::new();
+
+                        // Re-encode JPEGs to remove EXIF data.
+                        ImageReader::new(Cursor::new(buf))
+                            .with_guessed_format()
+                            .map_err(|_| Error::IOError)?
+                            .decode()
+                            .map_err(|_| Error::IOError)?
+                            .write_to(&mut bytes, image::ImageOutputFormat::Jpeg(config.jpeg_quality))
+                            .map_err(|_| Error::IOError)?;
+                        
+                        buf = bytes;
+                    }
 
                     Metadata::Image {
                         width: TryFrom::try_from(width).map_err(|_| Error::IOError)?,
