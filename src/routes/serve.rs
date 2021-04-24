@@ -37,13 +37,14 @@ pub fn try_resize(buf: Vec<u8>, width: u32, height: u32) -> Result<Vec<u8>, Imag
 
 pub async fn fetch_file(
     id: &str,
+    tag: &str,
     metadata: Metadata,
     resize: Option<Resize>,
 ) -> Result<(Vec<u8>, Option<String>), Error> {
     let mut contents = vec![];
 
     if *USE_S3 {
-        let bucket = get_s3_bucket()?;
+        let bucket = get_s3_bucket(tag)?;
         let (data, code) = bucket
             .get_object(format!("/{}", id))
             .await
@@ -101,8 +102,8 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     let tag = get_tag(&req)?;
 
     let id = req.match_info().query("filename");
-    let file = find_file(id, tag).await?;
-    let (contents, content_type) = fetch_file(id, file.metadata, Some(resize.0)).await?;
+    let file = find_file(id, tag.clone()).await?;
+    let (contents, content_type) = fetch_file(id, &tag.0, file.metadata, Some(resize.0)).await?;
 
     Ok(HttpResponse::Ok()
         .set_header("Content-Disposition", "inline")

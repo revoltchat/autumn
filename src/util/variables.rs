@@ -25,7 +25,7 @@ lazy_static! {
     pub static ref USE_S3: bool = env::var("AUTUMN_S3_REGION").is_ok() && env::var("AUTUMN_S3_ENDPOINT").is_ok();
 }
 
-pub fn get_s3_bucket() -> Result<s3::Bucket, Error> {
-    s3::Bucket::new_with_path_style(&"file-uploads", S3_REGION.clone(), S3_CREDENTIALS.clone())
+pub fn get_s3_bucket(bucket: &str) -> Result<s3::Bucket, Error> {
+    s3::Bucket::new_with_path_style(bucket, S3_REGION.clone(), S3_CREDENTIALS.clone())
         .map_err(|_| Error::S3Error)
 }

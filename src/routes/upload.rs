@@ -162,7 +162,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         let id = nanoid!(42);
         let file = crate::db::File {
             id,
-            tag: tag_id,
+            tag: tag_id.clone(),
             filename,
             metadata,
             content_type,
@@ -175,7 +175,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             .map_err(|_| Error::DatabaseError)?;
 
         if *USE_S3 {
-            let bucket = get_s3_bucket()?;
+            let bucket = get_s3_bucket(&tag_id)?;
 
             let (_, code) = bucket
                 .put_object(format!("/{}", file.id), &buf)
