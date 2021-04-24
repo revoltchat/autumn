@@ -106,6 +106,7 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
 
     Ok(HttpResponse::Ok()
         .set_header("Content-Disposition", "inline")
+        .set_header("Cache-Control", "max-age=31536000")
         .content_type(content_type.unwrap_or(file.content_type))
         .body(contents))
 }

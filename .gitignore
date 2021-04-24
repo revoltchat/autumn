@@ -1,5 +1,7 @@
+docker-compose.yml
 /target
 .mongo
 files
+/data
 .env
 tmp

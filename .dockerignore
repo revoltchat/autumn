@@ -1,3 +1,5 @@
+.mongo
 target
 files
+data
 .env

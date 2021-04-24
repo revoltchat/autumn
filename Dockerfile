@@ -1,5 +1,5 @@
 # Build Stage
-FROM ekidd/rust-musl-builder:nightly-2021-01-01 AS builder
+FROM ekidd/rust-musl-builder:nightly-2021-02-13 AS builder
 WORKDIR /home/rust/src
 
 RUN USER=root cargo new --bin autumn
@@ -15,4 +15,5 @@ COPY --from=builder /home/rust/src/autumn/target/x86_64-unknown-linux-musl/relea
 RUN apk add --no-cache ffmpeg
 EXPOSE 3000
 ENV AUTUMN_HOST 0.0.0.0:3000
+COPY Autumn.toml ./
 CMD ["./autumn"]
