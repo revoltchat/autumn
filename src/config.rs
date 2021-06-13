@@ -30,8 +30,18 @@ pub struct Tag {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "as")]
+pub enum ServeConfig {
+    WEBP {
+        quality: Option<f32>
+    },
+    PNG
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub tags: HashMap<String, Tag>,
+    pub serve: ServeConfig,
     pub jpeg_quality: u8
 }
 

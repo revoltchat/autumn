@@ -1,4 +1,4 @@
-use crate::config::get_tag;
+use crate::config::{Config, ServeConfig, get_tag};
 use crate::db::*;
 use crate::util::result::Error;
 use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3};
@@ -23,15 +23,29 @@ pub struct Resize {
 
 pub fn try_resize(buf: Vec<u8>, width: u32, height: u32) -> Result<Vec<u8>, ImageError> {
     let mut bytes: Vec<u8> = Vec::new();
+    let config = Config::global();
 
-    ImageReader::new(Cursor::new(buf))
+    let image = ImageReader::new(Cursor::new(buf))
         .with_guessed_format()?
         .decode()?
         // resize_exact is about 2.5x slower,
         //  thumb approximation doesn't have terrible quality so it's fine to stick with
         //.resize_exact(width as u32, height as u32, image::imageops::FilterType::Gaussian)
-        .thumbnail_exact(width as u32, height as u32)
-        .write_to(&mut bytes, image::ImageOutputFormat::Png)?;
+        .thumbnail_exact(width as u32, height as u32);
+
+    match config.serve {
+        ServeConfig::PNG => {
+            image.write_to(&mut bytes, image::ImageOutputFormat::Png)?;
+        }
+        ServeConfig::WEBP { quality } => {
+            let encoder = webp::Encoder::from_image(&image);
+            if let Some(quality) = quality {
+                bytes = encoder.encode(quality).to_vec();
+            } else {
+                bytes = encoder.encode_lossless().to_vec();
+            }
+        }
+    }
 
     Ok(bytes)
 }
@@ -43,6 +57,7 @@ pub async fn fetch_file(
     resize: Option<Resize>,
 ) -> Result<(Vec<u8>, Option<String>), Error> {
     let mut contents = vec![];
+    let config = Config::global();
 
     if *USE_S3 {
         let bucket = get_s3_bucket(tag)?;
@@ -104,7 +119,12 @@ pub async fn fetch_file(
             })
             .await
             {
-                return Ok((bytes, Some("image/png".to_string())));
+                return Ok((bytes, Some(
+                    match config.serve {
+                        ServeConfig::PNG => "image/png",
+                        ServeConfig::WEBP { .. } => "image/webp"
+                    }
+                    .to_string())));
             }
         }
     }

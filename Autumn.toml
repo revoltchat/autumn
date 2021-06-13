@@ -1,5 +1,9 @@
 jpeg_quality = 80
 
+[serve]
+    as = "WEBP"
+    quality = 90.0
+
 [tags]
     # File Uploads
     [tags.attachments]
