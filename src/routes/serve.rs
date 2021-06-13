@@ -18,6 +18,7 @@ pub struct Resize {
     pub size: Option<isize>,
     pub width: Option<isize>,
     pub height: Option<isize>,
+    pub max_side: Option<isize>,
 }
 
 pub fn try_resize(buf: Vec<u8>, width: u32, height: u32) -> Result<Vec<u8>, ImageError> {
@@ -68,17 +69,30 @@ pub async fn fetch_file(
 
     if let Some(parameters) = resize {
         if let Metadata::Image { width, height } = metadata {
+            let shortest_length = cmp::min(width, height);
             let (target_width, target_height) =
-                match (parameters.size, parameters.width, parameters.height) {
-                    (Some(size), _, _) => (size, size),
-                    (_, Some(w), Some(h)) => (cmp::min(width, w), cmp::min(height, h)),
-                    (_, Some(w), _) => {
+                match (parameters.size, parameters.max_side, parameters.width, parameters.height) {
+                    (Some(size), _, _, _) => {
+                        let smallest_size = cmp::min(size, shortest_length);
+                        (smallest_size, smallest_size)
+                    },
+                    (_, Some(size), _, _) => {
+                        if shortest_length == width {
+                            let h = cmp::min(height, size);
+                            ((width as f32 * (h as f32 / height as f32)) as isize, h)
+                        } else {
+                            let w = cmp::min(width, size);
+                            (w, (height as f32 * (w as f32 / width as f32)) as isize)
+                        }
+                    },
+                    (_, _, Some(w), Some(h)) => (cmp::min(width, w), cmp::min(height, h)),
+                    (_, _, Some(w), _) => {
                         let w = cmp::min(width, w);
-                        (w, (height as f32 * (w as f32 / width as f32)) as isize)
+                        (w, (w as f32 * (height as f32 / width as f32)) as isize)
                     }
-                    (_, _, Some(h)) => {
+                    (_, _, _, Some(h)) => {
                         let h = cmp::min(height, h);
-                        ((width as f32 * (h as f32 / height as f32)) as isize, h)
+                        ((h as f32 * (width as f32 / height as f32)) as isize, h)
                     }
                     _ => return Ok((contents, None)),
                 };

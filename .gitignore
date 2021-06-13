@@ -3,5 +3,6 @@ docker-compose.yml
 .mongo
 files
 /data
+/adata
 .env
 tmp

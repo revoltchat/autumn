@@ -1,7 +1,8 @@
-pub mod config;
-pub mod db;
+pub mod version;
 pub mod routes;
+pub mod config;
 pub mod util;
+pub mod db;
 
 use util::variables::{HOST, LOCAL_STORAGE_PATH, USE_S3};
 
@@ -12,10 +13,20 @@ extern crate tree_magic;
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
 use log::info;
+use std::env;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
+
+    if let Ok(v) = env::var("MINIO_ROOT_USER") {
+        env::set_var("AWS_ACCESS_KEY_ID", v);
+    }
+
+    if let Ok(v) = env::var("MINIO_ROOT_PASSWORD") {
+        env::set_var("AWS_SECRET_ACCESS_KEY", v);
+    }
+
     env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "info"));
     config::Config::init()?;
 
@@ -26,6 +37,9 @@ async fn main() -> std::io::Result<()> {
     if !*USE_S3 {
         info!("Ensuring local storage directory exists.");
         std::fs::create_dir_all(LOCAL_STORAGE_PATH.to_string()).unwrap();
+    } else {
+        info!("Ensuring buckets exist.");
+        // ! FIXME: create buckets
     }
 
     HttpServer::new(|| {

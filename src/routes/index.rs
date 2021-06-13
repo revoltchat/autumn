@@ -6,7 +6,7 @@ use serde_json::json;
 pub async fn get() -> HttpResponse {
     let config = Config::global();
     let body = json!({
-        "autumn": "1.0.0",
+        "autumn": crate::version::VERSION,
         "tags": config.tags,
         "jpeg_quality": config.jpeg_quality
     });
