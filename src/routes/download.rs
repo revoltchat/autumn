@@ -18,7 +18,7 @@ pub async fn get(req: HttpRequest) -> Result<HttpResponse, Error> {
             "Content-Disposition",
             format!("attachment; filename=\"{}\"", file.filename),
         )
-        .set_header("Cache-Control", "max-age=31536000")
+        .set_header("Cache-Control", crate::CACHE_CONTROL)
         .content_type(file.content_type)
         .body(contents))
 }

@@ -15,6 +15,8 @@ use actix_web::{middleware, web, App, HttpServer};
 use log::info;
 use std::env;
 
+pub static CACHE_CONTROL: &'static str = "public, max-age=604800, must-revalidate";
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
