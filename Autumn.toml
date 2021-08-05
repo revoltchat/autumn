@@ -30,6 +30,6 @@ jpeg_quality = 80
     
     # Banners
     [tags.banners]
-        max_size = 4000000
+        max_size = 6000000
         restrict_content_type = "Image"
         serve_if_field_present = "server_id"
