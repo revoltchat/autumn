@@ -139,9 +139,24 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     let file = find_file(id, tag.clone()).await?;
     let (contents, content_type) = fetch_file(id, &tag.0, file.metadata, Some(resize.0)).await?;
 
+    let content_type = content_type.unwrap_or(file.content_type);
+
+    // This list should match files accepted
+    // by upload.rs#L68 as allowed images / videos.
+    let diposition = match content_type.as_ref() {
+        "image/jpeg" |
+        "image/png" |
+        "image/gif" |
+        "image/webp" |
+        "video/mp4" |
+        "video/webm" |
+        "video/webp" => "inline",
+        _ => "attachment"
+    };
+
     Ok(HttpResponse::Ok()
-        .set_header("Content-Disposition", "inline")
+        .set_header("Content-Disposition", diposition)
         .set_header("Cache-Control", crate::CACHE_CONTROL)
-        .content_type(content_type.unwrap_or(file.content_type))
+        .content_type(content_type)
         .body(contents))
 }
