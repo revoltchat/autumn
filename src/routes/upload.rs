@@ -168,6 +168,8 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             metadata,
             content_type,
             size: buf.len() as isize,
+            deleted: None,
+            reported: None,
         };
 
         get_collection("attachments")

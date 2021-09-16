@@ -145,8 +145,12 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
 
     let id = req.match_info().query("filename");
     let file = find_file(id, tag.clone()).await?;
-    let (contents, content_type) = fetch_file(id, &tag.0, file.metadata, Some(resize.0)).await?;
 
+    if let Some(true) = file.deleted {
+        return Err(Error::NotFound)
+    }
+
+    let (contents, content_type) = fetch_file(id, &tag.0, file.metadata, Some(resize.0)).await?;
     let content_type = content_type.unwrap_or(file.content_type);
 
     // This list should match files accepted

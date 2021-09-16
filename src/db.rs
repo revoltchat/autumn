@@ -44,6 +44,11 @@ pub struct File {
     pub metadata: Metadata,
     pub content_type: String,
     pub size: isize,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deleted: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reported: Option<bool>,
 }
 
 pub async fn find_file(id: &str, tag: (String, &Tag)) -> Result<File, Error> {
