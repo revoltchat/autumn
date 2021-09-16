@@ -1,18 +1,18 @@
 # Build Stage
-FROM ekidd/rust-musl-builder:nightly-2021-02-13 AS builder
+FROM rustlang/rust:nightly-slim AS builder
+USER 0:0
 WORKDIR /home/rust/src
 
 RUN USER=root cargo new --bin autumn
 WORKDIR /home/rust/src/autumn
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-RUN cargo build --release
+RUN apt-get update && apt-get install -y libssl-dev pkg-config && cargo install --locked --path .
 
 # Bundle Stage
-FROM alpine:latest
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
-COPY --from=builder /home/rust/src/autumn/target/x86_64-unknown-linux-musl/release/autumn ./
-RUN apk add --no-cache ffmpeg
+FROM debian:buster-slim
+RUN apt-get update && apt-get install -y ca-certificates ffmpeg
+COPY --from=builder /usr/local/cargo/bin/autumn ./
 EXPOSE 3000
 ENV AUTUMN_HOST 0.0.0.0:3000
 COPY Autumn.toml ./
