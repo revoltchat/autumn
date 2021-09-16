@@ -43,10 +43,11 @@ async fn main() -> std::io::Result<()> {
         info!("Skipping existence check, make sure your S3 buckets exist!");
     }
 
-    /*tokio::spawn(async {
-        dbg!("hello");
-        tokio::time::sleep(core::time::Duration::from_millis(100)).await;
-    });*/
+    tokio::spawn(async {
+        // loop {
+            // delete
+        // }
+    });
 
     HttpServer::new(|| {
         App::new()

@@ -13,11 +13,9 @@ webp = "0.1.3"
 mime = "0.3.16"
 nanoid = "0.3.0"
 image = "0.23.14"
-mongodb = "1.1.1"
 dotenv = "0.15.0"
 ffprobe = "0.3.0"
 futures = "0.3.8"
-rust-s3 = "0.26.4"
 tempfile = "3.2.0"
 once_cell = "1.5.2"
 imagesize = "0.9.0"
@@ -29,6 +27,9 @@ sanitize-filename = "0.3.0"
 content_inspector = "0.2.4"
 serde = { version = "1.0.118", features = ["derive"] }
 tokio = { version = "1.4.0", features = ["rt", "io-util", "fs", "time"] }
+
+rust-s3 = "0.27.0-rc4"
+mongodb = "2.0.0"
 
 actix-web = "4.0.0-beta.9"
 actix-cors = "0.6.0-beta.2"

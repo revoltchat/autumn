@@ -10,7 +10,6 @@ use ffprobe::ffprobe;
 use futures::{StreamExt, TryStreamExt};
 use image::io::Reader as ImageReader;
 use imagesize;
-use mongodb::bson::to_document;
 use nanoid::nanoid;
 use serde_json::json;
 use std::convert::TryInto;
@@ -65,6 +64,8 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         // ? Find the content-type of the data.
         let content_type = tree_magic::from_u8(&buf);
         let s = &content_type[..];
+
+        dbg!("IT IS", s);
 
         let metadata = match s {
             /* jpg */ "image/jpeg" |
@@ -176,7 +177,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         };
 
         get_collection("attachments")
-            .insert_one(to_document(&file).map_err(|_| Error::DatabaseError)?, None)
+            .insert_one(&file, None)
             .await
             .map_err(|_| Error::DatabaseError)?;
 
