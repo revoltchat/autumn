@@ -1,8 +1,8 @@
-pub mod version;
-pub mod routes;
 pub mod config;
-pub mod util;
 pub mod db;
+pub mod routes;
+pub mod util;
+pub mod version;
 
 use util::variables::{HOST, LOCAL_STORAGE_PATH, USE_S3};
 
@@ -40,10 +40,7 @@ async fn main() -> std::io::Result<()> {
         info!("Ensuring local storage directory exists.");
         std::fs::create_dir_all(LOCAL_STORAGE_PATH.to_string()).unwrap();
     } else {
-        info!("Ensuring buckets exist.");
-        //util::variables::create_s3_bucket("attachments").await.unwrap();
-        util::variables::get_s3_bucket("attachments").unwrap();
-        // ! FIXME: create buckets
+        info!("Skipping existence check, make sure your S3 buckets exist!");
     }
 
     HttpServer::new(|| {

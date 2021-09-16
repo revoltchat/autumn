@@ -1,4 +1,4 @@
-use crate::config::{Config, ContentType, get_tag};
+use crate::config::{get_tag, Config, ContentType};
 use crate::db::*;
 use crate::util::result::Error;
 use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3};
@@ -8,15 +8,15 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use content_inspector::inspect;
 use ffprobe::ffprobe;
 use futures::{StreamExt, TryStreamExt};
+use image::io::Reader as ImageReader;
 use imagesize;
 use mongodb::bson::to_document;
 use nanoid::nanoid;
 use serde_json::json;
 use std::convert::TryFrom;
-use std::io::{Read, Write, Cursor};
+use std::io::{Cursor, Read, Write};
 use std::process::Command;
 use tempfile::NamedTempFile;
-use image::io::Reader as ImageReader;
 
 pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Error> {
     let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
@@ -82,7 +82,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                             .map_err(|_| Error::IOError)?
                             .write_to(&mut bytes, image::ImageOutputFormat::Jpeg(config.jpeg_quality))
                             .map_err(|_| Error::IOError)?;
-                        
+
                         buf = bytes;
                     }
 
@@ -166,7 +166,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             filename,
             metadata,
             content_type,
-            size: file_size as isize,
+            size: buf.len() as isize,
         };
 
         get_collection("attachments")

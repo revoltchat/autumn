@@ -1,4 +1,4 @@
-use crate::config::{Config, ServeConfig, get_tag};
+use crate::config::{get_tag, Config, ServeConfig};
 use crate::db::*;
 use crate::util::result::Error;
 use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3};
@@ -85,32 +85,36 @@ pub async fn fetch_file(
     if let Some(parameters) = resize {
         if let Metadata::Image { width, height } = metadata {
             let shortest_length = cmp::min(width, height);
-            let (target_width, target_height) =
-                match (parameters.size, parameters.max_side, parameters.width, parameters.height) {
-                    (Some(size), _, _, _) => {
-                        let smallest_size = cmp::min(size, shortest_length);
-                        (smallest_size, smallest_size)
-                    },
-                    (_, Some(size), _, _) => {
-                        if shortest_length == width {
-                            let h = cmp::min(height, size);
-                            ((width as f32 * (h as f32 / height as f32)) as isize, h)
-                        } else {
-                            let w = cmp::min(width, size);
-                            (w, (height as f32 * (w as f32 / width as f32)) as isize)
-                        }
-                    },
-                    (_, _, Some(w), Some(h)) => (cmp::min(width, w), cmp::min(height, h)),
-                    (_, _, Some(w), _) => {
-                        let w = cmp::min(width, w);
-                        (w, (w as f32 * (height as f32 / width as f32)) as isize)
+            let (target_width, target_height) = match (
+                parameters.size,
+                parameters.max_side,
+                parameters.width,
+                parameters.height,
+            ) {
+                (Some(size), _, _, _) => {
+                    let smallest_size = cmp::min(size, shortest_length);
+                    (smallest_size, smallest_size)
+                }
+                (_, Some(size), _, _) => {
+                    if shortest_length == width {
+                        let h = cmp::min(height, size);
+                        ((width as f32 * (h as f32 / height as f32)) as isize, h)
+                    } else {
+                        let w = cmp::min(width, size);
+                        (w, (height as f32 * (w as f32 / width as f32)) as isize)
                     }
-                    (_, _, _, Some(h)) => {
-                        let h = cmp::min(height, h);
-                        ((h as f32 * (width as f32 / height as f32)) as isize, h)
-                    }
-                    _ => return Ok((contents, None)),
-                };
+                }
+                (_, _, Some(w), Some(h)) => (cmp::min(width, w), cmp::min(height, h)),
+                (_, _, Some(w), _) => {
+                    let w = cmp::min(width, w);
+                    (w, (w as f32 * (height as f32 / width as f32)) as isize)
+                }
+                (_, _, _, Some(h)) => {
+                    let h = cmp::min(height, h);
+                    ((h as f32 * (width as f32 / height as f32)) as isize, h)
+                }
+                _ => return Ok((contents, None)),
+            };
 
             // There should be a way to do this zero-copy, but I can't be asked to figure it out right now.
             let cloned = contents.clone();
@@ -119,12 +123,16 @@ pub async fn fetch_file(
             })
             .await
             {
-                return Ok((bytes, Some(
-                    match config.serve {
-                        ServeConfig::PNG => "image/png",
-                        ServeConfig::WEBP { .. } => "image/webp"
-                    }
-                    .to_string())));
+                return Ok((
+                    bytes,
+                    Some(
+                        match config.serve {
+                            ServeConfig::PNG => "image/png",
+                            ServeConfig::WEBP { .. } => "image/webp",
+                        }
+                        .to_string(),
+                    ),
+                ));
             }
         }
     }
@@ -144,14 +152,9 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     // This list should match files accepted
     // by upload.rs#L68 as allowed images / videos.
     let diposition = match content_type.as_ref() {
-        "image/jpeg" |
-        "image/png" |
-        "image/gif" |
-        "image/webp" |
-        "video/mp4" |
-        "video/webm" |
-        "video/webp" => "inline",
-        _ => "attachment"
+        "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "video/mp4" | "video/webm"
+        | "video/webp" | "audio/mpeg" => "inline",
+        _ => "attachment",
     };
 
     Ok(HttpResponse::Ok()

@@ -29,12 +29,3 @@ pub fn get_s3_bucket(bucket: &str) -> Result<s3::Bucket, Error> {
     s3::Bucket::new_with_path_style(bucket, S3_REGION.clone(), S3_CREDENTIALS.clone())
         .map_err(|_| Error::S3Error)
 }
-
-pub async fn create_s3_bucket(bucket: &str) -> Result<(), Error> {
-    let result = s3::Bucket::create(bucket, S3_REGION.clone(), S3_CREDENTIALS.clone(), s3::BucketConfiguration::default())
-        .await.unwrap();
-        //.map_err(|_| Error::S3Error)?;
-
-    dbg!(result.response_code, result.response_text);
-    Ok(())
-}

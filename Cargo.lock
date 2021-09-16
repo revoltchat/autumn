@@ -1190,9 +1190,9 @@ dependencies = [
 
 [[package]]
 name = "ffprobe"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc7707b7128d0af25fbb945b6a37969d1d863f62b79d0e0f49519861dce154f2"
+checksum = "f439d57070a29c93e5bdf9f98b973360aa96b1b8c203793de54482f168fc216a"
 dependencies = [
  "serde",
  "serde_json",
