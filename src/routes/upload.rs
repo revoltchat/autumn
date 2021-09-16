@@ -13,23 +13,24 @@ use imagesize;
 use mongodb::bson::to_document;
 use nanoid::nanoid;
 use serde_json::json;
-use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::io::{Cursor, Read, Write};
 use std::process::Command;
 use tempfile::NamedTempFile;
 
 pub fn determine_video_size(path: &std::path::Path) -> Result<(isize, isize), Error> {
     let data = ffprobe(path).map_err(|_| Error::ProbeError)?;
-    let stream = data
-        .streams
-        .into_iter()
-        .next()
-        .ok_or_else(|| Error::ProbeError)?;
 
-    Ok((
-        TryFrom::try_from(stream.width.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?,
-        TryFrom::try_from(stream.height.ok_or(Error::ProbeError)?).map_err(|_| Error::IOError)?,
-    ))
+    // Take the first valid stream.
+    for stream in data.streams {
+        if let (Some(w), Some(h)) = (stream.width, stream.height) {
+            if let (Ok(w), Ok(h)) = (w.try_into(), h.try_into()) {
+                return Ok((w, h));
+            }
+        }
+    }
+
+    Err(Error::ProbeError)
 }
 
 pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpResponse, Error> {
@@ -87,8 +88,8 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                     }
 
                     Metadata::Image {
-                        width: TryFrom::try_from(width).map_err(|_| Error::IOError)?,
-                        height: TryFrom::try_from(height).map_err(|_| Error::IOError)?
+                        width: width.try_into().map_err(|_| Error::IOError)?,
+                        height: height.try_into().map_err(|_| Error::IOError)?
                     }
                 } else {
                     Metadata::File
