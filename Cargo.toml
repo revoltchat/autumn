@@ -28,6 +28,7 @@ content_inspector = "0.2.4"
 serde = { version = "1.0.118", features = ["derive"] }
 tokio = { version = "1.4.0", features = ["rt", "io-util", "fs", "time"] }
 
+tokio-cron-scheduler = "*"
 rust-s3 = "0.27.0-rc4"
 mongodb = "2.0.0"
 

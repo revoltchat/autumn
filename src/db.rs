@@ -1,7 +1,8 @@
 use crate::config::Tag;
 use crate::util::result::Error;
-use crate::util::variables::MONGO_URI;
+use crate::util::variables::{MONGO_URI, USE_S3, LOCAL_STORAGE_PATH, get_s3_bucket};
 
+use actix_web::web;
 use mongodb::bson::doc;
 use mongodb::{Client, Collection};
 use once_cell::sync::OnceCell;
@@ -49,6 +50,46 @@ pub struct File {
     pub deleted: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reported: Option<bool>,
+}
+
+impl File {
+    pub async fn delete_in_storage(&self) -> Result<(), Error> {
+        if *USE_S3 {
+            let bucket = get_s3_bucket(&self.tag)?;
+
+            let (_, code) = bucket
+                .delete_object(format!("/{}", &self.id))
+                .await
+                .map_err(|_| Error::S3Error)?;
+
+            if code != 200 {
+                return Err(Error::S3Error);
+            }
+        } else {
+            let path = format!("{}/{}", *LOCAL_STORAGE_PATH, &self.id);
+            web::block(|| std::fs::remove_file(path))
+                .await
+                .map_err(|_| Error::BlockingError)?
+                .map_err(|_| Error::IOError)?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete(self) -> Result<(), Error> {
+        self.delete_in_storage().await.ok();
+
+        get_collection("attachments")
+            .delete_one(
+                doc! { "_id": &self.id },
+                None
+            )
+            .await
+            .map_err(|_| Error::DatabaseError)?;
+
+        println!("Deleted attachment {}", self.id);
+        Ok(())
+    }
 }
 
 pub async fn find_file(id: &str, tag: (String, &Tag)) -> Result<File, Error> {

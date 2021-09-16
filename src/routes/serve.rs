@@ -147,7 +147,7 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     let file = find_file(id, tag.clone()).await?;
 
     if let Some(true) = file.deleted {
-        return Err(Error::NotFound)
+        return Err(Error::NotFound);
     }
 
     let (contents, content_type) = fetch_file(id, &tag.0, file.metadata, Some(resize.0)).await?;

@@ -4,6 +4,7 @@ pub mod routes;
 pub mod util;
 pub mod version;
 
+use futures::StreamExt;
 use util::variables::{HOST, LOCAL_STORAGE_PATH, USE_S3};
 
 #[macro_use]
@@ -13,6 +14,7 @@ extern crate tree_magic;
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
 use log::info;
+use mongodb::bson::doc;
 use std::env;
 
 pub static CACHE_CONTROL: &'static str = "public, max-age=604800, must-revalidate";
@@ -44,9 +46,44 @@ async fn main() -> std::io::Result<()> {
     }
 
     tokio::spawn(async {
-        // loop {
-            // delete
-        // }
+        let mut sched = tokio_cron_scheduler::JobScheduler::new();
+
+        sched
+            .add(
+                tokio_cron_scheduler::Job::new_repeated(
+                    core::time::Duration::from_secs(600),
+                    |_, _| {
+                        tokio::spawn(async {
+                            let col = db::get_collection("attachments");
+                            let mut cursor = col
+                                .find(
+                                    doc! {
+                                        "deleted": true,
+                                        "reported": {
+                                            "$ne": true
+                                        }
+                                    },
+                                    None,
+                                )
+                                .await
+                                .unwrap();
+
+                            while let Some(result) = cursor.next().await {
+                                if let Ok(file) = result {
+                                    file.delete().await.unwrap();
+                                }
+
+                                // Delay before doing the next item in list.
+                                tokio::time::sleep(core::time::Duration::from_millis(50)).await;
+                            }
+                        });
+                    },
+                )
+                .unwrap(),
+            )
+            .unwrap();
+
+        sched.start().await.unwrap();
     });
 
     HttpServer::new(|| {
