@@ -102,7 +102,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 let mut tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
                 tmp.write_all(&buf).map_err(|_| Error::IOError)?;
 
-                if let Ok(((width, height), tmp)) = web::block(move || determine_video_size(tmp.path()).map(|t| (t, tmp))).await {
+                if let Ok(Ok(((width, height), tmp))) = web::block(move || determine_video_size(tmp.path()).map(|t| (t, tmp))).await {
                     buf = vec![];
                     let out_tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
                     let out_tmp = web::block(move ||
@@ -119,14 +119,17 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                             .map_err(|_| Error::IOError)
                     )
                     .await
+                    .map_err(|_| Error::BlockingError)?
                     .map_err(|_| Error::IOError)?;
 
                     let mut file = web::block(move || std::fs::File::open(out_tmp.path()).map(|f| (f, out_tmp)))
                         .await
+                        .map_err(|_| Error::BlockingError)?
                         .map_err(|_| Error::IOError)?;
 
                     buf = web::block(move || file.0.read_to_end(&mut buf).map(|_| buf))
                         .await
+                        .map_err(|_| Error::BlockingError)?
                         .map_err(|_| Error::IOError)?;
 
                     Metadata::Video {
@@ -192,14 +195,16 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             let path = format!("{}/{}", *LOCAL_STORAGE_PATH, &file.id);
             let mut f = web::block(|| std::fs::File::create(path))
                 .await
+                .map_err(|_| Error::BlockingError)?
                 .map_err(|_| Error::IOError)?;
 
             web::block(move || f.write_all(&buf))
                 .await
+                .map_err(|_| Error::BlockingError)?
                 .map_err(|_| Error::IOError)?;
         }
 
-        Ok(HttpResponse::Ok().body(json!({ "id": file.id })))
+        Ok(HttpResponse::Ok().json(json!({ "id": file.id })))
     } else {
         Err(Error::MissingData)
     }

@@ -19,11 +19,11 @@ pub async fn get(req: HttpRequest) -> Result<HttpResponse, Error> {
     let (contents, _) = fetch_file(id, &tag.0, file.metadata, None).await?;
 
     Ok(HttpResponse::Ok()
-        .set_header(
+        .insert_header((
             "Content-Disposition",
             format!("attachment; filename=\"{}\"", file.filename),
-        )
-        .set_header("Cache-Control", crate::CACHE_CONTROL)
+        ))
+        .insert_header(("Cache-Control", crate::CACHE_CONTROL))
         .content_type(file.content_type)
         .body(contents))
 }

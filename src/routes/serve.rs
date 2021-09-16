@@ -118,7 +118,7 @@ pub async fn fetch_file(
 
             // There should be a way to do this zero-copy, but I can't be asked to figure it out right now.
             let cloned = contents.clone();
-            if let Ok(bytes) = actix_web::web::block(move || {
+            if let Ok(Ok(bytes)) = actix_web::web::block(move || {
                 try_resize(cloned, target_width as u32, target_height as u32)
             })
             .await
@@ -162,8 +162,8 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     };
 
     Ok(HttpResponse::Ok()
-        .set_header("Content-Disposition", diposition)
-        .set_header("Cache-Control", crate::CACHE_CONTROL)
+        .insert_header(("Content-Disposition", diposition))
+        .insert_header(("Cache-Control", crate::CACHE_CONTROL))
         .content_type(content_type)
         .body(contents))
 }

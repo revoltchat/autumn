@@ -11,5 +11,5 @@ pub async fn get() -> HttpResponse {
         "jpeg_quality": config.jpeg_quality
     });
 
-    HttpResponse::Ok().body(body)
+    HttpResponse::Ok().json(body)
 }
