@@ -5,7 +5,7 @@ pub mod util;
 pub mod version;
 
 use futures::StreamExt;
-use util::variables::{HOST, LOCAL_STORAGE_PATH, USE_S3};
+use util::variables::{CONFIG, HOST, LOCAL_STORAGE_PATH, USE_S3};
 
 #[macro_use]
 extern crate lazy_static;
@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "info"));
-    config::Config::init().expect("Unable to load Autumn.toml config");
+    config::Config::init().expect(&format!("Unable to load the config '{}'", CONFIG.to_string()));
 
     info!("Starting Autumn server.");
 
