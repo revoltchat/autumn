@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::Read;
 
 use crate::util::result::Error;
+use crate::util::variables::CONFIG;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ContentType {
@@ -51,7 +52,7 @@ impl Config {
     }
 
     pub fn init() -> std::io::Result<()> {
-        let mut file = File::open("Autumn.toml")?;
+        let mut file = File::open(CONFIG.to_string())?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
 
