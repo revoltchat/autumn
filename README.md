@@ -28,8 +28,6 @@ Autumn is the microservice responsible for storing files and attachments.
 
 | Command            | Description                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------ |
-| `./publish.sh`     | Publish a Docker Image.                                                                    |
-| `./set_version.sh` | Update the version. **Not intended for PR use.**                                           |
 | `cargo build`      | Build/compile Autumn.                                                                      |
 | `cargo run`        | Run Autumn.                                                                                |
 | `cargo fmt`        | Format Autumn. Not intended for PR use to avoid accidentally formatting unformatted files. |
