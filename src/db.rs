@@ -100,5 +100,5 @@ pub async fn find_file(id: &str, tag: (String, &Tag)) -> Result<File, Error> {
         .find_one(query, None)
         .await
         .map_err(|_| Error::DatabaseError)?
-        .ok_or_else(|| Error::NotFound)
+        .ok_or(Error::NotFound)
 }

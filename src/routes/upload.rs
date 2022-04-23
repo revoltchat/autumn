@@ -38,11 +38,9 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
 
     if let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field
-            .content_disposition()
-            .ok_or_else(|| Error::FailedToReceive)?;
+            .content_disposition().ok_or(Error::FailedToReceive)?;
         let filename = content_type
-            .get_filename()
-            .ok_or_else(|| Error::FailedToReceive)?
+            .get_filename().ok_or(Error::FailedToReceive)?
             .to_string();
 
         // ? Read multipart data into a buffer.
@@ -110,11 +108,11 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                         Command::new("ffmpeg")
                             .args(&[
                                 "-y",                                                       // Overwrite the temporary file.
-                                "-i", tmp.path().to_str().ok_or_else(|| Error::IOError)?,   // Read the original uploaded file.
+                                "-i", tmp.path().to_str().ok_or(Error::IOError)?,   // Read the original uploaded file.
                                 "-map_metadata", "-1",                                      // Strip any metadata.
                                 "-c:v", "copy", "-c:a", "copy",                             // Copy video / audio data to new file.
                                 "-f", ext,                                                  // Select the correct file format.
-                                out_tmp.path().to_str().ok_or_else(|| Error::IOError)?])    // Save to new temporary file.
+                                out_tmp.path().to_str().ok_or(Error::IOError)?])    // Save to new temporary file.
                             .output()
                             .map(|_| out_tmp)
                             .map_err(|_| Error::IOError)
