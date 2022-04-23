@@ -32,7 +32,10 @@ async fn main() -> std::io::Result<()> {
     }
 
     env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "info"));
-    config::Config::init().expect(&format!("Unable to load the config '{}'", CONFIG.to_string()));
+    config::Config::init().expect(&format!(
+        "Unable to load the config '{}'",
+        CONFIG.to_string()
+    ));
 
     info!("Starting Autumn server.");
 
