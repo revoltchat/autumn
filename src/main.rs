@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "info"));
-    config::Config::init()?;
+    config::Config::init().expect("Unable to load Autumn.toml config");
 
     info!("Starting Autumn server.");
 
