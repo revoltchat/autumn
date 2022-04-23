@@ -52,7 +52,7 @@ impl Config {
     }
 
     pub fn init() -> std::io::Result<()> {
-        let mut file = File::open(CONFIG.to_string())?;
+        let mut file = File::open(&*CONFIG)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
 

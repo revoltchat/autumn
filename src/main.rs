@@ -17,7 +17,7 @@ use log::info;
 use mongodb::bson::doc;
 use std::env;
 
-pub static CACHE_CONTROL: &'static str = "public, max-age=604800, must-revalidate";
+pub static CACHE_CONTROL: &str = "public, max-age=604800, must-revalidate";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -32,10 +32,9 @@ async fn main() -> std::io::Result<()> {
     }
 
     env_logger::init_from_env(env_logger::Env::default().filter_or("RUST_LOG", "info"));
-    config::Config::init().expect(&format!(
-        "Unable to load the config '{}'",
-        CONFIG.to_string()
-    ));
+
+    config::Config::init()
+        .unwrap_or_else(|err| panic!("Unable to load the config '{}'. {}", *CONFIG, err));
 
     info!("Starting Autumn server.");
 
