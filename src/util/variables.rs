@@ -5,6 +5,8 @@ use std::env;
 
 lazy_static! {
     // Application Settings
+    pub static ref CONFIG: String =
+        env::var("AUTUMN_CONFIG").unwrap_or_else(|_| String::from("Autumn.toml"));
     pub static ref HOST: String =
         env::var("AUTUMN_HOST").expect("Missing AUTUMN_HOST environment variable.");
     pub static ref MONGO_URI: String =

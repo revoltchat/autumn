@@ -1,6 +1,6 @@
 use crate::config::Tag;
 use crate::util::result::Error;
-use crate::util::variables::{MONGO_URI, MONGO_DATABASE, USE_S3, LOCAL_STORAGE_PATH, get_s3_bucket};
+use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, MONGO_URI, MONGO_DATABASE, USE_S3};
 
 use actix_web::web;
 use mongodb::bson::doc;
@@ -80,10 +80,7 @@ impl File {
         self.delete_in_storage().await.ok();
 
         get_collection("attachments")
-            .delete_one(
-                doc! { "_id": &self.id },
-                None
-            )
+            .delete_one(doc! { "_id": &self.id }, None)
             .await
             .map_err(|_| Error::DatabaseError)?;
 
@@ -103,5 +100,5 @@ pub async fn find_file(id: &str, tag: (String, &Tag)) -> Result<File, Error> {
         .find_one(query, None)
         .await
         .map_err(|_| Error::DatabaseError)?
-        .ok_or_else(|| Error::NotFound)
+        .ok_or(Error::NotFound)
 }
