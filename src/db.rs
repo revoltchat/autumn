@@ -1,6 +1,6 @@
 use crate::config::Tag;
 use crate::util::result::Error;
-use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, MONGO_URI, USE_S3};
+use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, MONGO_URI, MONGO_DATABASE, USE_S3};
 
 use actix_web::web;
 use mongodb::bson::doc;
@@ -22,7 +22,7 @@ pub fn get_collection(collection: &str) -> Collection<File> {
     DBCONN
         .get()
         .unwrap()
-        .database("revolt")
+        .database(&MONGO_DATABASE)
         .collection(collection)
 }
 
