@@ -95,8 +95,14 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 }
             }
             /*  mp4 */ "video/mp4" |
-            /* webm */ "video/webm" => {
-                let ext = if s == "video/mp4" { "mp4" } else { "webm" };
+            /* webm */ "video/webm" |
+            /*  mov */ "video/quicktime" => {
+                let ext = match s {
+                    "video/mp4" => "mp4",
+                    "video/webm" => "webm",
+                    "video/quicktime" => "mov",
+                    _ => unreachable!()
+                };
 
                 let mut tmp = NamedTempFile::new().map_err(|_| Error::IOError)?;
                 tmp.write_all(&buf).map_err(|_| Error::IOError)?;
