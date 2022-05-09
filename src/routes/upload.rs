@@ -37,10 +37,10 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
     let (tag_id, tag) = get_tag(&req)?;
 
     if let Ok(Some(mut field)) = payload.try_next().await {
-        let content_type = field
-            .content_disposition().ok_or(Error::FailedToReceive)?;
+        let content_type = field.content_disposition().ok_or(Error::FailedToReceive)?;
         let filename = content_type
-            .get_filename().ok_or(Error::FailedToReceive)?
+            .get_filename()
+            .ok_or(Error::FailedToReceive)?
             .to_string();
 
         // ? Read multipart data into a buffer.
@@ -76,22 +76,21 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                         let mut cursor = Cursor::new(buf);
 
                         // Attempt to extract orientation data.
-                        let mut rotation = 0;
                         let exif_reader = exif::Reader::new();
-                        match exif_reader.read_from_container(&mut cursor) {
+                        let rotation = match exif_reader.read_from_container(&mut cursor) {
                             Ok(exif) => {
                                 match exif.get_field(exif::Tag::Orientation, exif::In::PRIMARY) {
                                     Some(orientation) => {
                                         match orientation.value.get_uint(0) {
-                                            Some(v @ 1..=8) => rotation = v,
-                                            _ => {}
+                                            Some(v @ 1..=8) => v,
+                                            _ => 0
                                         }
                                     }
-                                    _ => {}
+                                    _ => 0
                                 }
                             }
-                            _ => {}
-                        }
+                            _ => 0
+                        };
 
                         cursor.set_position(0);
 
@@ -146,11 +145,11 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                     let out_tmp = web::block(move ||
                         Command::new("ffmpeg")
                             .args(&[
-                                "-y",                                                       // Overwrite the temporary file.
+                                "-y",                                               // Overwrite the temporary file.
                                 "-i", tmp.path().to_str().ok_or(Error::IOError)?,   // Read the original uploaded file.
-                                "-map_metadata", "-1",                                      // Strip any metadata.
-                                "-c:v", "copy", "-c:a", "copy",                             // Copy video / audio data to new file.
-                                "-f", ext,                                                  // Select the correct file format.
+                                "-map_metadata", "-1",                              // Strip any metadata.
+                                "-c:v", "copy", "-c:a", "copy",                     // Copy video / audio data to new file.
+                                "-f", ext,                                          // Select the correct file format.
                                 out_tmp.path().to_str().ok_or(Error::IOError)?])    // Save to new temporary file.
                             .output()
                             .map(|_| out_tmp)
@@ -191,12 +190,12 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         };
 
         if let Some(content_type) = &tag.restrict_content_type {
-            if match (content_type, &metadata) {
-                (ContentType::Image, Metadata::Image { .. }) => false,
-                (ContentType::Video, Metadata::Video { .. }) => false,
-                (ContentType::Audio, Metadata::Audio) => false,
-                _ => true,
-            } {
+            if !matches!(
+                (content_type, &metadata),
+                (ContentType::Image, Metadata::Image { .. })
+                    | (ContentType::Video, Metadata::Video { .. })
+                    | (ContentType::Audio, Metadata::Audio)
+            ) {
                 return Err(Error::FileTypeNotAllowed);
             }
         }
