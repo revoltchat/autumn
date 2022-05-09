@@ -73,13 +73,46 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
                     if s == "image/jpeg" {
                         let mut bytes: Vec<u8> = Vec::new();
+                        let mut cursor = Cursor::new(buf);
+
+                        // Attempt to extract orientation data.
+                        let mut rotation = 0;
+                        let exif_reader = exif::Reader::new();
+                        match exif_reader.read_from_container(&mut cursor) {
+                            Ok(exif) => {
+                                match exif.get_field(exif::Tag::Orientation, exif::In::PRIMARY) {
+                                    Some(orientation) => {
+                                        match orientation.value.get_uint(0) {
+                                            Some(v @ 1..=8) => rotation = v,
+                                            _ => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            _ => {}
+                        }
+
+                        cursor.set_position(0);
 
                         // Re-encode JPEGs to remove EXIF data.
-                        ImageReader::new(Cursor::new(buf))
+                        let image = ImageReader::new(cursor)
                             .with_guessed_format()
                             .map_err(|_| Error::IOError)?
                             .decode()
-                            .map_err(|_| Error::IOError)?
+                            .map_err(|_| Error::IOError);
+
+                            // See https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
+                            match &rotation {
+                                2 => { image?.fliph() }
+                                3 => { image?.rotate180() }
+                                4 => { image?.rotate180().fliph() }
+                                5 => { image?.rotate90().fliph() }
+                                6 => { image?.rotate90() }
+                                7 => { image?.rotate270().fliph() }
+                                8 => { image?.rotate270() }
+                                _ => { image? }
+                            }
                             .write_to(&mut bytes, image::ImageOutputFormat::Jpeg(config.jpeg_quality))
                             .map_err(|_| Error::IOError)?;
 

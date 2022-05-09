@@ -23,6 +23,7 @@ env_logger = "0.7.1"
 tree_magic = "0.2.3"
 serde_json = "1.0.60"
 lazy_static = "1.4.0"
+kamadak-exif = "0.5.4"
 sanitize-filename = "0.3.0"
 content_inspector = "0.2.4"
 serde = { version = "1.0.118", features = ["derive"] }
