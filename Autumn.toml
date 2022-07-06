@@ -36,6 +36,7 @@ jpeg_quality = 80
 
     # Emoji
     [tags.emojis]
+        use_ulid = true
         max_size = 500000
         restrict_content_type = "Image"
-        serve_if_field_present = ["object_id", "server_id"]
+        serve_if_field_present = ["object_id"]

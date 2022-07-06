@@ -22,6 +22,8 @@ fn default_as_true() -> bool {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Tag {
     pub max_size: usize,
+    #[serde(default)]
+    pub use_ulid: bool,
     #[serde(default = "default_as_true")]
     pub enabled: bool,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]

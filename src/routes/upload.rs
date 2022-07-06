@@ -198,7 +198,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             }
         }
 
-        let id = nanoid!(42);
+        let id = if tag.use_ulid { ulid::Ulid::new().to_string() } else { nanoid!(42) };
         let file = crate::db::File {
             id,
             tag: tag_id.clone(),
