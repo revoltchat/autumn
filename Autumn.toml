@@ -8,28 +8,34 @@ jpeg_quality = 80
     # File Uploads
     [tags.attachments]
         max_size = 20000000
-        serve_if_field_present = "message_id"
+        serve_if_field_present = ["object_id", "message_id"]
 
     # User Avatars
     [tags.avatars]
         max_size = 4000000
         restrict_content_type = "Image"
-        serve_if_field_present = "user_id"
+        serve_if_field_present = ["object_id", "user_id"]
     
     # User Profile Backgrounds
     [tags.backgrounds]
         max_size = 6000000
         restrict_content_type = "Image"
-        serve_if_field_present = "user_id"
+        serve_if_field_present = ["object_id", "user_id"]
         
     # Channel / Server Icons
     [tags.icons]
         max_size = 2500000
         restrict_content_type = "Image"
-        serve_if_field_present = "object_id"
+        serve_if_field_present = ["object_id"]
     
     # Banners
     [tags.banners]
         max_size = 6000000
         restrict_content_type = "Image"
-        serve_if_field_present = "server_id"
+        serve_if_field_present = ["object_id", "server_id"]
+
+    # Emoji
+    [tags.emojis]
+        max_size = 500000
+        restrict_content_type = "Image"
+        serve_if_field_present = ["object_id", "server_id"]

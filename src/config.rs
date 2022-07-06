@@ -24,8 +24,8 @@ pub struct Tag {
     pub max_size: usize,
     #[serde(default = "default_as_true")]
     pub enabled: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub serve_if_field_present: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub serve_if_field_present: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub restrict_content_type: Option<ContentType>,
 }

@@ -94,8 +94,17 @@ impl File {
 pub async fn find_file(id: &str, tag: (String, &Tag)) -> Result<File, Error> {
     let mut query = doc! { "_id": id, "tag": tag.0 };
 
-    if let Some(field) = &tag.1.serve_if_field_present {
-        query.insert(field, doc! { "$exists": true });
+    if !&tag.1.serve_if_field_present.is_empty() {
+        let mut or = vec![];
+        for field in &tag.1.serve_if_field_present {
+            or.push(doc! {
+                field: {
+                    "$exists": true
+                }
+            });
+        }
+
+        query.insert("$or", or);
     }
 
     get_collection("attachments")
