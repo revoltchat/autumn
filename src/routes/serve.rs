@@ -157,7 +157,7 @@ pub async fn get(req: HttpRequest, resize: Query<Resize>) -> Result<HttpResponse
     // by upload.rs#L68 as allowed images / videos.
     let diposition = match content_type.as_ref() {
         "image/jpeg" | "image/png" | "image/gif" | "image/webp" | "video/mp4" | "video/webm"
-        | "video/webp" | "audio/mpeg" => "inline",
+        | "video/webp" | "audio/quicktime" | "audio/mpeg" => "inline",
         _ => "attachment",
     };
 
