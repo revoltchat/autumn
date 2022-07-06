@@ -63,8 +63,6 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         let content_type = tree_magic::from_u8(&buf);
         let s = &content_type[..];
 
-        dbg!("IT IS", s);
-
         let metadata = match s {
             /* jpg */ "image/jpeg" |
             /* png */ "image/png" |
