@@ -94,6 +94,7 @@ async fn main() -> std::io::Result<()> {
                 Cors::default()
                     .allowed_origin_fn(|_, _| true)
                     .allowed_methods(vec!["GET", "POST"])
+                    .allowed_headers(["X-Session-Token", "X-Bot-Token"])
                     .supports_credentials(),
             )
             .wrap(middleware::Logger::default())
