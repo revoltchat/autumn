@@ -69,7 +69,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             /* gif */ "image/gif" |
             /* webp */ "image/webp"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
-                    if s == "image/jpeg" {
+                    if s == "image/jpeg" || s == "image/png" {
                         let mut bytes: Vec<u8> = Vec::new();
                         let mut cursor = Cursor::new(buf);
 
@@ -93,6 +93,13 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                         cursor.set_position(0);
 
                         // Re-encode JPEGs to remove EXIF data.
+                        // Also re-encode PNGs to mitigate CVE-2023-21036
+                        let output_format: image::ImageOutputFormat = if s == "image/jpeg" {
+                            image::ImageOutputFormat::Jpeg(config.jpeg_quality)
+                        } else { // It's a PNG
+                            image::ImageOutputFormat::Png
+                        };
+
                         let image = ImageReader::new(cursor)
                             .with_guessed_format()
                             .map_err(|_| Error::IOError)?
@@ -110,7 +117,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                                 8 => { image?.rotate270() }
                                 _ => { image? }
                             }
-                            .write_to(&mut bytes, image::ImageOutputFormat::Jpeg(config.jpeg_quality))
+                            .write_to(&mut bytes, output_format)
                             .map_err(|_| Error::IOError)?;
 
                         buf = bytes;
@@ -198,7 +205,12 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             }
         }
 
-        let id = if tag.use_ulid { ulid::Ulid::new().to_string() } else { nanoid!(42) };
+        let id = if tag.use_ulid {
+            ulid::Ulid::new().to_string()
+        } else {
+            nanoid!(42)
+        };
+
         let file = crate::db::File {
             id,
             tag: tag_id.clone(),
