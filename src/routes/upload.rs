@@ -70,7 +70,6 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             /* webp */ "image/webp"  => {
                 if let Ok(imagesize::ImageSize { width, height }) = imagesize::blob_size(&buf) {
                     if s == "image/jpeg" || s == "image/png" {
-                        let mut bytes: Vec<u8> = Vec::new();
                         let mut cursor = Cursor::new(buf);
 
                         // Attempt to extract orientation data.
@@ -106,19 +105,22 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                             .decode()
                             .map_err(|_| Error::IOError);
 
-                            // See https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
-                            match &rotation {
-                                2 => { image?.fliph() }
-                                3 => { image?.rotate180() }
-                                4 => { image?.rotate180().fliph() }
-                                5 => { image?.rotate90().fliph() }
-                                6 => { image?.rotate90() }
-                                7 => { image?.rotate270().fliph() }
-                                8 => { image?.rotate270() }
-                                _ => { image? }
-                            }
-                            .write_to(&mut bytes, output_format)
-                            .map_err(|_| Error::IOError)?;
+                        let mut bytes: Vec<u8> = Vec::new();
+                        let mut writer = Cursor::new(&mut bytes);
+
+                        // See https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
+                        match &rotation {
+                            2 => { image?.fliph() }
+                            3 => { image?.rotate180() }
+                            4 => { image?.rotate180().fliph() }
+                            5 => { image?.rotate90().fliph() }
+                            6 => { image?.rotate90() }
+                            7 => { image?.rotate270().fliph() }
+                            8 => { image?.rotate270() }
+                            _ => { image? }
+                        }
+                        .write_to(&mut writer, output_format)
+                        .map_err(|_| Error::IOError)?;
 
                         buf = bytes;
   

@@ -35,10 +35,11 @@ pub fn try_resize(buf: Vec<u8>, width: u32, height: u32) -> Result<Vec<u8>, Imag
 
     match config.serve {
         ServeConfig::PNG => {
-            image.write_to(&mut bytes, image::ImageOutputFormat::Png)?;
+            let mut writer = Cursor::new(&mut bytes);
+            image.write_to(&mut writer, image::ImageOutputFormat::Png)?;
         }
         ServeConfig::WEBP { quality } => {
-            let encoder = webp::Encoder::from_image(&image);
+            let encoder = webp::Encoder::from_image(&image).expect("Could not create encoder.");
             if let Some(quality) = quality {
                 bytes = encoder.encode(quality).to_vec();
             } else {
