@@ -121,11 +121,23 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                             .map_err(|_| Error::IOError)?;
 
                         buf = bytes;
-                    }
+  
+                        // Calculate dimensions after rotation.
+                        let (width, height) = match &rotation {
+                            2 | 4 | 5 | 7 => (height, width),
+                            _ => (width, height)
+                        };
 
-                    Metadata::Image {
-                        width: width.try_into().map_err(|_| Error::IOError)?,
-                        height: height.try_into().map_err(|_| Error::IOError)?
+                        Metadata::Image {
+                            width: width.try_into().map_err(|_| Error::IOError)?,
+                            height: height.try_into().map_err(|_| Error::IOError)?
+                        }
+                    } else {
+                        // GIFs and WebPs will not be re-encoded.
+                        Metadata::Image {
+                            width: width.try_into().map_err(|_| Error::IOError)?,
+                            height: height.try_into().map_err(|_| Error::IOError)?
+                        }
                     }
                 } else {
                     Metadata::File
