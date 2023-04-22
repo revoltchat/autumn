@@ -10,7 +10,7 @@ COPY src ./src
 RUN apt-get update && apt-get install -y libssl-dev pkg-config && cargo install --locked --path .
 
 # Bundle Stage
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y ca-certificates ffmpeg
 COPY --from=builder /usr/local/cargo/bin/autumn ./
 EXPOSE 3000
