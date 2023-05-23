@@ -25,6 +25,7 @@ lazy_static! {
         region: env::var("AUTUMN_S3_REGION").unwrap_or_else(|_| "".to_string()),
         endpoint: env::var("AUTUMN_S3_ENDPOINT").unwrap_or_else(|_| "".to_string())
     };
+    pub static ref S3_BUCKET_PREFIX: String = env::var("AUTUMN_S3_BUCKET_PREFIX").unwrap_or_else(|_| "".to_string());
     pub static ref S3_CREDENTIALS: Credentials = Credentials::default().unwrap();
 
     // Application Flags
@@ -33,6 +34,12 @@ lazy_static! {
 }
 
 pub fn get_s3_bucket(bucket: &str) -> Result<s3::Bucket, Error> {
-    s3::Bucket::new_with_path_style(bucket, S3_REGION.clone(), S3_CREDENTIALS.clone())
-        .map_err(|_| Error::S3Error)
+    let mut final_bucket_path = S3_BUCKET_PREFIX.to_owned();
+    final_bucket_path.push_str(bucket);
+    s3::Bucket::new_with_path_style(
+        &final_bucket_path,
+        S3_REGION.clone(),
+        S3_CREDENTIALS.clone(),
+    )
+    .map_err(|_| Error::S3Error)
 }
