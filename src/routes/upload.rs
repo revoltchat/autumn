@@ -1,7 +1,7 @@
 use crate::config::{get_tag, Config, ContentType};
 use crate::db::*;
 use crate::util::result::Error;
-use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3};
+use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3, USE_CLAMD, CLAMD_HOST};
 
 use actix_multipart::Multipart;
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -203,6 +203,17 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                 if inspect(&buf).is_text() {
                     Metadata::Text
                 } else {
+                    // Scan the file for malware
+                    if *USE_CLAMD {
+                        let scan_response =
+                            revolt_clamav_client::scan_buffer_tcp(&buf, CLAMD_HOST.to_string(), None).unwrap();
+
+                        let file_clean = revolt_clamav_client::clean(&scan_response).unwrap();
+                        if !file_clean {
+                            return Err(Error::Malware)
+                        }
+                    }
+
                     Metadata::File
                 }
             }

@@ -15,6 +15,8 @@ lazy_static! {
         env::var("AUTUMN_MONGO_DATABASE").unwrap_or_else(|_| "revolt".to_string());
     pub static ref CORS_ALLOWED_ORIGIN: String =
         env::var("AUTUMN_CORS_ALLOWED_ORIGIN").expect("Missing AUTUMN_CORS_ALLOWED_ORIGIN environment variable.");
+    pub static ref CLAMD_HOST: String =
+        env::var("CLAMD_HOST").expect("Missing CLAMD_HOST environment variable.");
 
     // Storage Settings
     pub static ref LOCAL_STORAGE_PATH: String =
@@ -27,6 +29,7 @@ lazy_static! {
 
     // Application Flags
     pub static ref USE_S3: bool = env::var("AUTUMN_S3_REGION").is_ok() && env::var("AUTUMN_S3_ENDPOINT").is_ok();
+    pub static ref USE_CLAMD: bool = env::var("CLAMD_HOST").is_ok();
 }
 
 pub fn get_s3_bucket(bucket: &str) -> Result<s3::Bucket, Error> {

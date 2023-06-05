@@ -16,6 +16,7 @@ pub enum Error {
     UnknownTag,
     ProbeError,
     NotFound,
+    Malware,
     IOError,
     S3Error,
     LabelMe,
@@ -42,6 +43,7 @@ impl ResponseError for Error {
             Error::IOError => StatusCode::INTERNAL_SERVER_ERROR,
             Error::S3Error => StatusCode::INTERNAL_SERVER_ERROR,
             Error::LabelMe => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Malware => StatusCode::FORBIDDEN,
         }
     }
 

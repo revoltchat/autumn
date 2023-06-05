@@ -357,7 +357,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "autumn"
-version = "1.1.8"
+version = "1.1.9"
 dependencies = [
  "actix-cors",
  "actix-files",
@@ -377,6 +377,7 @@ dependencies = [
  "mongodb",
  "nanoid",
  "once_cell",
+ "revolt_clamav-client",
  "rust-s3",
  "sanitize-filename",
  "serde",
@@ -2348,6 +2349,12 @@ dependencies = [
  "hostname",
  "quick-error",
 ]
+
+[[package]]
+name = "revolt_clamav-client"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d719e9fe861e2e05cbf01fd82d310fdeb2160c74fee21689a5c223eeb65cea8"
 
 [[package]]
 name = "ring"

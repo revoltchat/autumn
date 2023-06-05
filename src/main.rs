@@ -3,6 +3,7 @@ pub mod db;
 pub mod routes;
 pub mod util;
 pub mod version;
+pub mod virus_scan;
 
 use futures::StreamExt;
 use util::variables::{CONFIG, HOST, LOCAL_STORAGE_PATH, USE_S3};
@@ -37,6 +38,8 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|err| panic!("Unable to load the config '{}'. {}", *CONFIG, err));
 
     info!("Starting Autumn server.");
+
+    virus_scan::init();
 
     db::connect().await;
 
