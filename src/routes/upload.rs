@@ -1,7 +1,7 @@
 use crate::config::{get_tag, Config, ContentType};
 use crate::db::*;
 use crate::util::result::Error;
-use crate::util::variables::{get_s3_bucket, LOCAL_STORAGE_PATH, USE_S3, USE_CLAMD, CLAMD_HOST};
+use crate::util::variables::{get_s3_bucket, CLAMD_HOST, LOCAL_STORAGE_PATH, USE_CLAMD, USE_S3};
 
 use actix_multipart::Multipart;
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -60,7 +60,23 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
         }
 
         // ? Find the content-type of the data.
-        let content_type = tree_magic::from_u8(&buf);
+        let mut content_type = tree_magic::from_u8(&buf);
+
+        // Intercept known file extensions with certain content types
+        if content_type == "application/zip" && filename.to_lowercase().ends_with(".apk") {
+            content_type = "application/vnd.android.package-archive".to_string();
+        }
+
+        if content_type == "application/x-riff" {
+            if filename.to_lowercase().ends_with(".webp") {
+                content_type = "image/webp".to_string();
+            } else if filename.to_lowercase().ends_with(".wav")
+                || filename.to_lowercase().ends_with(".wave")
+            {
+                content_type = "audio/wav".to_string();
+            }
+        }
+
         let s = &content_type[..];
 
         let metadata = match s {
@@ -123,7 +139,7 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                         .map_err(|_| Error::IOError)?;
 
                         buf = bytes;
-  
+
                         // Calculate dimensions after rotation.
                         let (width, height) = match &rotation {
                             2 | 4 | 5 | 7 => (height, width),
@@ -196,7 +212,10 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
                     Metadata::File
                 }
             }
-            /* mp3 */ "audio/mpeg" => {
+            /* mp3 */ "audio/mpeg" |
+            /* wav */ "audio/wav" |
+            /* ogg */ "audio/x-vorbis+ogg" |
+            /* opus */ "audio/x-opus+ogg" => {
                 Metadata::Audio
             }
             _ => {
