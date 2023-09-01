@@ -37,7 +37,8 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
     let (tag_id, tag) = get_tag(&req)?;
 
     if let Ok(Some(mut field)) = payload.try_next().await {
-        let content_type = field.content_disposition().ok_or(Error::FailedToReceive)?;
+        let content_type = field.content_disposition();
+
         let filename = content_type
             .get_filename()
             .ok_or(Error::FailedToReceive)?
