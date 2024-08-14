@@ -1,5 +1,5 @@
 # Build Stage
-FROM rustlang/rust:nightly-slim AS builder
+FROM rust:1.80-slim-bullseye AS builder
 USER 0:0
 WORKDIR /home/rust/src
 
