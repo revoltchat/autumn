@@ -8,6 +8,7 @@ use std::fmt::Display;
 #[serde(tag = "type")]
 pub enum Error {
     FileTooLarge { max_size: usize },
+    ContentTypeNotAllowed,
     FileTypeNotAllowed,
     FailedToReceive,
     BlockingError,
@@ -32,6 +33,7 @@ impl ResponseError for Error {
     fn status_code(&self) -> StatusCode {
         match &self {
             Error::FileTooLarge { .. } => StatusCode::PAYLOAD_TOO_LARGE,
+            Error::ContentTypeNotAllowed => StatusCode::BAD_REQUEST,
             Error::FileTypeNotAllowed => StatusCode::BAD_REQUEST,
             Error::FailedToReceive => StatusCode::BAD_REQUEST,
             Error::DatabaseError => StatusCode::INTERNAL_SERVER_ERROR,

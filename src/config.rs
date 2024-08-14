@@ -39,11 +39,19 @@ pub enum ServeConfig {
     PNG,
 }
 
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct FilterConfig {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub content_types: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub tags: HashMap<String, Tag>,
     pub serve: ServeConfig,
     pub jpeg_quality: u8,
+    #[serde(default)]
+    pub filter: FilterConfig,
 }
 
 static INSTANCE: OnceCell<Config> = OnceCell::new();

@@ -77,6 +77,11 @@ pub async fn post(req: HttpRequest, mut payload: Multipart) -> Result<HttpRespon
             }
         }
 
+        // Check if content type is blocked
+        if config.filter.content_types.contains(&content_type) {
+            return Err(Error::ContentTypeNotAllowed);
+        }
+
         let s = &content_type[..];
 
         let metadata = match s {
